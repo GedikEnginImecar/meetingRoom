@@ -1,0 +1,33 @@
+{
+	"name": "meetingroom4",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"start": "nodemon server.js",
+		"dev": "npm run server.js"
+	},
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"axios": "^1.6.7",
+		"bcrypt": "^5.1.1",
+		"cookie": "^0.6.0",
+		"cookie-parser": "^1.4.6",
+		"cors": "^2.8.5",
+		"crypto": "^1.0.1",
+		"dotenv": "^16.4.5",
+		"express": "^4.18.2",
+		"express-validator": "^7.0.1",
+		"jsonwebtoken": "^9.0.2",
+		"node-cron": "^3.0.3",
+		"nodemon": "^3.1.0",
+		"pg": "^8.11.3",
+		"postgres": "^3.4.3",
+		"querystring": "^0.2.1",
+		"sequelize": "^6.37.1",
+		"swagger-jsdoc": "^6.2.8",
+		"swagger-ui-express": "^5.0.0"
+	}
+}
