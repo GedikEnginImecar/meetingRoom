@@ -1,0 +1,83 @@
+body {
+	font-family: Arial, sans-serif;
+	background-color: #f8f9fa;
+	margin: 0;
+	padding: 0;
+}
+
+.container {
+	max-width: 75%;
+	margin: 20px auto;
+	padding: 20px;
+	background-color: #fff;
+	border-radius: 10px;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#calendar {
+	margin-top: 20px;
+	display: flex;
+	flex-wrap: wrap;
+}
+
+#calender:hover {
+	background-color: #0056b3;
+}
+
+.day {
+	flex-basis: calc(100% / 8);
+	border: 1px solid #ccc;
+	padding: 10px;
+}
+
+.meeting {
+	background-color: lightblue;
+	padding: 5px;
+	margin-top: 5px;
+	margin-bottom: 5px;
+	border-radius: 5px;
+}
+
+input[type="date"],
+button {
+	padding: 10px 20px;
+	margin: 10px 0;
+	border: none;
+	border-radius: 5px;
+	background-color: #007bff;
+	color: #fff;
+	cursor: pointer;
+	transition: background-color 0.3s;
+}
+
+input[type="date"]:hover {
+	background-color: #0056b3;
+}
+
+input[type="date"]:focus {
+	background-color: #007bff;
+	outline: none;
+}
+
+button:hover {
+	background-color: #0056b3;
+}
+
+select {
+	padding: 10px 20px;
+	margin: 10px 0;
+	border: none;
+	border-radius: 5px;
+	background-color: #007bff;
+	color: #fff;
+	cursor: pointer;
+	outline: none;
+}
+
+select:hover {
+	background-color: #0056b3;
+}
+
+select:focus {
+	background-color: #0056b3;
+}
