@@ -1,0 +1,15 @@
+I want to query info from a database and execute certain actions based on the results (just print in console for the time being)
+look at the 2 functions in ledController, checkNextMeeting and setMeetingLed.
+
+- for checkNextMeeting, i want the following logic/actions:
+- get the current date and time,
+- get a list of all the rooms in the rooms database (use roomController and roomModel as needed)
+- using meetingController, use the getMeetingsByRoomDate, as the main inputs it takes is the date, and the roomID
+(which you should have from previous steps)
+- look at the next meeting for the room you are checking the meetings for -- and if the conditions are met, execute (console log) the code in setMeetingLed, 
+    - if the meeting starts within the next 15 minutes, set it to yellow (for the time being use console.log("meeting in 15 - yellow"))
+    - when the meeting starts, set it to red (for the time being use console.log("meeting on going - red"))
+    - when meeting ends, set it to green for 15 minutes (for the time being use console.log("meeting ended - green"))
+    - clear all leds (for the time being use console.log("meeting done - clear"))
+
+is this clear or do you need additional information/clarification

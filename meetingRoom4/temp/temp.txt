@@ -1,0 +1,73 @@
+okay create me 6 html files and the relavant js files, for the css use this boiler plate in the html.
+
+css boiler plate:
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css" integrity="sha512-EZLkOqwILORob+p0BXZc+Vm3RgJBOe1Iq/0fiI7r/wJgzOFZMlsqTa29UEl6v6U6gsV4uIpsNZoV32YZqrCRCQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+what the files should do:
+
+one to register, which also redirects you to login when submitted
+one login page that just takes you to a dashboard
+dashboard should have 3 buttons, one to direct to calender, one to rooms, one to meetings
+calender, just have temp in h1
+rooms, add, create or view room buttons
+meetings, add, create or view meetings buttons
+
+this is the project structure for context and redirecting:
+┣ 📂.vscode
+┃ ┗ 📜settings.json
+┣ 📂auth
+┃ ┗ 📜info.md
+┣ 📂configs
+┃ ┣ 📜dbConfig.js
+┃ ┗ 📜info.md
+┣ 📂controllers
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingController.js
+┃ ┣ 📜roomController.js
+┃ ┗ 📜userController.js
+┣ 📂middlewares
+┃ ┗ 📜info.md
+┣ 📂models
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingModel.js
+┃ ┣ 📜roomModel.js
+┃ ┗ 📜userModel.js
+┣ 📂old
+┃ ┣ 📜meetingController.js
+┃ ┣ 📜roomController.js
+┃ ┗ 📜userController.js
+┣ 📂public
+┃ ┣ 📂html
+┃ ┃ ┣ 📜calender.html
+┃ ┃ ┣ 📜dashboard.html
+┃ ┃ ┣ 📜login.html
+┃ ┃ ┣ 📜meetings.html
+┃ ┃ ┣ 📜register.html
+┃ ┃ ┗ 📜rooms.html
+┃ ┣ 📂js
+┃ ┃ ┣ 📜calender.js
+┃ ┃ ┣ 📜dashboard.js
+┃ ┃ ┣ 📜login.js
+┃ ┃ ┣ 📜meetings.js
+┃ ┃ ┣ 📜register.js
+┃ ┃ ┗ 📜rooms.js
+┃ ┗ 📜info.md
+┣ 📂routers
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingRouter.js
+┃ ┣ 📜roomRouter.js
+┃ ┗ 📜userRouter.js
+┣ 📂validators
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingValidator.js
+┃ ┣ 📜roomValidator.js
+┃ ┗ 📜userValidator.js
+┣ 📜.env
+┣ 📜.gitignore
+┣ 📜package.json
+┣ 📜server.js
+┣ 📜temp.txt
+┗ 📜test.js
+
+what other files do you need to get info regarding where to forward, rotues, controllers, how to format the input fields etc

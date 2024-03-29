@@ -1,0 +1,277 @@
+I have my leds.html, where the html code goes into,
+I want the leds.js within public class to use ledRouter.js I have to communicate with ledController.js
+I want it such that the user presses button on the leds.html, the leds.js acknowledges that and then routes the information and needed data into ledRouter.js.
+the ledRouter forwards it into ledController.js
+where the controller assembles a url similar to the example below, but if the hue passed from router is inside stringToHue on the string side, it changes it into the hue format (keep the || hue === red as i need it)
+and then once url is assembled using url path variables like the example, it is sent to the esps ip address
+
+flow should be -> user press button on leds.html -> leds.js forwards the data from button press to led router -> forwards data into ledController -> parses data from led router and assembles new url for esp32 -> sends the url to the esp32
+
+------
+example function:
+
+document.addEventListener("DOMContentLoaded", function () {
+				document
+					.getElementById("redButton")
+					.addEventListener("click", function () {
+						setLeds(0, 255, 255); // Set LEDs to red
+					});
+
+				document
+					.getElementById("greenButton")
+					.addEventListener("click", function () {
+						setLeds(85, 255, 255); // Set LEDs to green
+					});
+
+				function setLeds(hue, saturation, value) {
+					var xhr = new XMLHttpRequest();
+					xhr.open(
+						"GET",
+						"http://192.168.4.1:8080/esp32/setLeds?hue=" +
+							hue +
+							"&saturation=" +
+							saturation +
+							"&value=" +
+							value,
+						true
+					);
+					xhr.onreadystatechange = function () {
+						if (xhr.readyState === 4) {
+							if (xhr.status === 200) {
+								console.log(xhr.responseText);
+							} else {
+								console.error("Error:", xhr.statusText);
+							}
+						}
+					};
+					xhr.send();
+				}
+			});
+
+
+ledController.js:
+// can be used to control more advanced led functions that cant easily be defined as preset functions within the cpp code of the esp32
+const axios = require("axios");
+
+const stringToHue = {
+	blue: 170,
+	blueGreen: 127,
+	green: 85,
+	greenYellow: 42,
+	yellow: 21,
+	yellowOrange: 15,
+	orange: 10,
+	orangeRed: 5,
+	red: 0,
+	redViolet: 213,
+	violet: 191,
+	violetBlue: 170,
+};
+
+exports.ledControls = {
+	async setLeds(req, res) {
+		// Extract color information from the request body
+		let { hue, saturation, value } = req.body;
+
+		// If saturation or value are empty, null, or undefined, set them to 255
+		saturation = saturation || 255;
+		value = value || 255;
+
+		// Check if hue is a color name, if so, replace it with its corresponding hue value
+		if (stringToHue[hue] || hue === "red") {
+			hue = stringToHue[hue];
+		}
+
+		// Construct data object with color information
+		const data = {
+			hue: parseInt(hue),
+			saturation: parseInt(saturation),
+			value: parseInt(value),
+		};
+	},
+
+	async toggleBlink(req, res) {
+		console.log("toggleBlink");
+	},
+
+	async func2(req, res) {
+		console.log("func2");
+	},
+};
+
+
+ledRouter.js:
+// the commands and instructions from nodeJS app go to the esp32 from here
+// acts as a router to the led methods within the esp32
+
+const express = require("express");
+const router = express.Router();
+const { ledControls } = require("../controllers/ledController");
+
+router.post("/setLed", ledControls.setLeds);
+
+router.post("/toggleBlink", ledControls.toggleBlink);
+
+router.post("/func2", ledControls.func2);
+
+module.exports = router;
+
+
+leds.html:
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Led Controller</title>
+		<link rel="stylesheet" href="../css/leds.css" />
+	</head>
+	<body>
+		<div class="container">
+			<h1 class="page-title">Led Controller</h1>
+			<button class="setLed" id="red">Set Red</button>
+			<button class="setLed" id="yellow">Set Yellow</button>
+			<button class="setLed" id="green">Set Green</button>
+			<button id="toggleBlink">Toggle Blink</button>
+		</div>
+		<script src="../js/leds.js"></script>
+	</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>LED Controller</title>
+	</head>
+	<body>
+		<button id="redButton">Red</button>
+		<button id="yellowButton">Yellow</button>
+		<button id="greenButton">Green</button>
+		<button id="toggleBlink">Toggle Blink</button>
+
+		<script src="../js/leds.js"></script>
+	</body>
+</html>
+
+
+server.js:
+const express = require("express");
+const cors = require("cors");
+require("dotenv").config();
+
+const cookieParser = require("cookie-parser"); // Import cookie-parser
+const userRouter = require("./routers/userRouter");
+const roomRouter = require("./routers/roomRouter");
+const meetingRouter = require("./routers/meetingRouter");
+const ledRouter = require("./routers/ledRouter");
+const authRouter = require("./routers/authRouter"); // Update to authRouter
+const { connect } = require("./configs/dbConfig"); // Import the connect function
+
+const app = express();
+const port = process.env.PORT || 8080;
+
+app.use(express.json());
+app.use(cookieParser()); // Use cookie-parser middleware
+app.use(express.static("public")); // Serve static files from the public directory
+app.use(cors()); // allowing the use of cors
+
+app.use("/user", userRouter);
+app.use("/room", roomRouter);
+app.use("/meeting", meetingRouter);
+app.use("/auth", authRouter);
+app.use("/led", ledRouter);
+
+// Connect to the database when the server starts
+connect()
+	.then(() => {
+		// Start the server after establishing the database connection
+		app.listen(port, () => {
+			console.log(`Server is running on port ${port}`);
+		});
+	})
+	.catch((error) => {
+		console.error("Error connecting to the database:", error);
+		process.exit(1); // Exit with error
+	});
+
+
+
+project file structure
+┣ 📂.vscode
+┃ ┗ 📜settings.json
+┣ 📂configs
+┃ ┣ 📜dbConfig.js
+┃ ┗ 📜info.md
+┣ 📂controllers
+┃ ┣ 📜info.md
+┃ ┣ 📜ledController.js
+┃ ┣ 📜meetingController.js
+┃ ┣ 📜roomController.js
+┃ ┗ 📜userController.js
+┣ 📂ledControl
+┃   ┗ the esp code is contained within this folder
+┣ 📂middlewares
+┃ ┣ 📂auth
+┃ ┃ ┣ 📜auth.js
+┃ ┃ ┗ 📜info.md
+┃ ┣ 📂dtos
+┃ ┃ ┣ 📜appInfoDTO.js
+┃ ┃ ┣ 📜meetingDTO.js
+┃ ┃ ┣ 📜permissionDTO.js
+┃ ┃ ┣ 📜roomDTO.js
+┃ ┃ ┗ 📜userDTO.js
+┃ ┣ 📂responses
+┃ ┃ ┣ 📜authenticationResponse.js
+┃ ┃ ┣ 📜errorResponse.js
+┃ ┃ ┣ 📜permissionResponse.js
+┃ ┃ ┣ 📜resourceResponse.js
+┃ ┃ ┣ 📜successResponse.js
+┃ ┃ ┗ 📜validationResponse.js
+┃ ┗ 📜info.md
+┣ 📂models
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingModel.js
+┃ ┣ 📜roomModel.js
+┃ ┗ 📜userModel.js
+┣ 📂public
+┃ ┣ 📂css
+┃ ┃ ┣ 📜dashboard.css
+┃ ┃ ┣ 📜leds.css
+┃ ┃ ┣ 📜login.css
+┃ ┃ ┣ 📜meetings.css
+┃ ┃ ┣ 📜register.css
+┃ ┃ ┗ 📜rooms.css
+┃ ┣ 📂html
+┃ ┃ ┣ 📜dashboard.html
+┃ ┃ ┣ 📜leds.html
+┃ ┃ ┣ 📜login.html
+┃ ┃ ┣ 📜meetings.html
+┃ ┃ ┣ 📜register.html
+┃ ┃ ┗ 📜rooms.html
+┃ ┣ 📂js
+┃ ┃ ┣ 📜dashboard.js
+┃ ┃ ┣ 📜leds.js
+┃ ┃ ┣ 📜login.js
+┃ ┃ ┣ 📜meetings.js
+┃ ┃ ┣ 📜register.js
+┃ ┃ ┗ 📜rooms.js
+┃ ┣ 📜index.html
+┃ ┗ 📜info.md
+┣ 📂routers
+┃ ┣ 📜authRouter.js
+┃ ┣ 📜info.md
+┃ ┣ 📜ledRouter.js
+┃ ┣ 📜meetingRouter.js
+┃ ┣ 📜roomRouter.js
+┃ ┗ 📜userRouter.js
+┣ 📂validators
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingValidator.js
+┃ ┣ 📜roomValidator.js
+┃ ┗ 📜userValidator.js
+┣ 📜.env
+┣ 📜.gitignore
+┣ 📜package.json
+┗ 📜server.js

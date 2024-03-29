@@ -1,0 +1,282 @@
+okay so we want the public files to be in meetings.html, meetings.css, meetings.js for our code
+
+
+this is the old code:
+calenderView.html:
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Meeting Room Calendar</title>
+		<link rel="stylesheet" href="styles.css" />
+	</head>
+	<body>
+		<div class="container">
+			<div id="calendar-header">
+				<h2>Meeting Room Calendar</h2>
+				<div id="calendar-nav">
+					<button id="prev-week" onclick="prevWeek()">Previous Week</button>
+					<button id="next-week" onclick="nextWeek()">Next Week</button>
+					<select id="roomSelect">
+						<option value="1">Room 1</option>
+						<option value="2">Room 2</option>
+						<option value="3">Room 3</option>
+						<option value="4">Room 4</option>
+						<option value="5">Room 5</option>
+						<option value="6">Room 6</option>
+						<option value="7">Room 7</option>
+						<option value="8">Room 8</option>
+						<option value="9">Room 9</option>
+						<option value="10">Room 10</option>
+					</select>
+					<input type="date" id="startDate" />
+					<button onclick="loadCalendar()">Load Calendar</button>
+				</div>
+			</div>
+			<div id="calendar"></div>
+		</div>
+
+		<script src="calenderScript.js"></script>
+	</body>
+</html>
+
+
+styles.css:
+body {
+	font-family: Arial, sans-serif;
+	background-color: #f8f9fa;
+	margin: 0;
+	padding: 0;
+}
+
+.container {
+	max-width: 75%;
+	margin: 20px auto;
+	padding: 20px;
+	background-color: #fff;
+	border-radius: 10px;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#calendar {
+	margin-top: 20px;
+	display: flex;
+	flex-wrap: wrap;
+}
+
+#calender:hover {
+	background-color: #0056b3;
+}
+
+.day {
+	flex-basis: calc(100% / 8);
+	border: 1px solid #ccc;
+	padding: 10px;
+}
+
+.meeting {
+	background-color: lightblue;
+	padding: 5px;
+	margin-top: 5px;
+	margin-bottom: 5px;
+	border-radius: 5px;
+}
+
+input[type="date"],
+button {
+	padding: 10px 20px;
+	margin: 10px 0;
+	border: none;
+	border-radius: 5px;
+	background-color: #007bff;
+	color: #fff;
+	cursor: pointer;
+	transition: background-color 0.3s;
+}
+
+input[type="date"]:hover {
+	background-color: #0056b3;
+}
+
+input[type="date"]:focus {
+	background-color: #007bff;
+	outline: none;
+}
+
+button:hover {
+	background-color: #0056b3;
+}
+
+select {
+	padding: 10px 20px;
+	margin: 10px 0;
+	border: none;
+	border-radius: 5px;
+	background-color: #007bff;
+	color: #fff;
+	cursor: pointer;
+	outline: none;
+}
+
+select:hover {
+	background-color: #0056b3;
+}
+
+select:focus {
+	background-color: #0056b3;
+}
+
+calenderScript.js:
+// calendarScript.js
+
+window.onload = function () {
+	if (getTokenStateFromCookie() === "true") {
+		console.log("test");
+		const currentDate = new Date();
+		const dayOfWeek = currentDate.getDay();
+		const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+		const startOfWeek = new Date(currentDate);
+		startOfWeek.setDate(currentDate.getDate() - daysToMonday);
+		document.getElementById("startDate").value = startOfWeek
+			.toISOString()
+			.split("T")[0];
+
+		loadCalendar();
+	} else {
+		console.log("yeet");
+		disableCalendarControls();
+		window.location.href = "index.html";
+	}
+};
+
+async function loadCalendar() {
+	if (getTokenStateFromCookie() === "false") {
+		return;
+	}
+	const roomID = document.getElementById("roomSelect").value;
+	const startDate = document.getElementById("startDate").value;
+	// Calculate the end date by adding 6 days to the start date
+	const endDate = addDays(startDate, 6);
+	const response = await fetch(
+		`http://localhost:8080/api/meetings/getMeetingRoomIDPost?roomID=${roomID}`,
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				queryDateStart: startDate,
+				queryDateEnd: endDate, // Automatically calculated end date
+			}),
+		}
+	);
+
+	if (!response.ok) {
+		console.error("Failed to fetch meetings:", response.statusText);
+		return;
+	}
+	const meetings = await response.json();
+
+	const calendar = document.getElementById("calendar");
+	calendar.innerHTML = ""; // Clear previous calendar
+
+	const daysOfWeek = [
+		"Monday",
+		"Tuesday",
+		"Wednesday",
+		"Thursday",
+		"Friday",
+		"Saturday",
+		"Sunday",
+	];
+
+	for (let i = 0; i < 7; i++) {
+		const currentDate = new Date(startDate);
+		currentDate.setDate(currentDate.getDate() + i);
+
+		const dayDiv = document.createElement("div");
+		dayDiv.classList.add("day");
+		dayDiv.textContent = `${
+			daysOfWeek[i]
+		} (${currentDate.toLocaleDateString()})`;
+
+		meetings.forEach((meeting) => {
+			const meetingDate = new Date(meeting.meetingDate);
+			if (meetingDate.toDateString() === currentDate.toDateString()) {
+				const meetingDiv = document.createElement("div");
+				meetingDiv.classList.add("meeting");
+				meetingDiv.textContent = `${meeting.meetingStart} - ${meeting.meetingEnd}`;
+
+				dayDiv.appendChild(meetingDiv);
+			}
+		});
+
+		calendar.appendChild(dayDiv);
+	}
+}
+
+// Function to disable calendar navigation and room select if user is not authenticated
+function disableCalendarControls() {
+	document.getElementById("prev-week").disabled = true;
+	document.getElementById("next-week").disabled = true;
+	document.getElementById("roomSelect").disabled = true;
+}
+
+function prevWeek() {
+	const startDate = document.getElementById("startDate").value;
+	const newStartDate = addDays(startDate, -7); // Subtract 7 days to go to previous week
+	document.getElementById("startDate").value = newStartDate;
+	loadCalendar();
+}
+
+function nextWeek() {
+	const startDate = document.getElementById("startDate").value;
+	const newStartDate = addDays(startDate, 7); // Add 7 days to go to next week
+	document.getElementById("startDate").value = newStartDate;
+	loadCalendar();
+}
+
+// Function to add days to a date
+function addDays(dateString, days) {
+	const date = new Date(dateString);
+	date.setDate(date.getDate() + days);
+	return date.toISOString().split("T")[0];
+}
+
+// Function to validate the selected date and allow only Mondays
+function validateDate() {
+	const selectedDate = new Date(document.getElementById("startDate").value);
+	const dayOfWeek = selectedDate.getDay();
+
+	if (dayOfWeek !== 1) {
+		// 1 represents Monday
+		alert("Please select a Monday.");
+		// Reset the input field value to the previous Monday
+		const currentDate = new Date();
+		const dayDiff = (currentDate.getDay() - 1 + 7) % 7;
+		const lastMonday = new Date(currentDate);
+		lastMonday.setDate(currentDate.getDate() - dayDiff);
+		document.getElementById("startDate").value = lastMonday
+			.toISOString()
+			.split("T")[0];
+	}
+}
+
+// Add event listener to the start date input field for validation
+document.getElementById("startDate").addEventListener("change", validateDate);
+
+// Function to extract token and check existence from the cookie
+function getTokenStateFromCookie() {
+	const cookies = document.cookie.split(";").map((cookie) => cookie.trim());
+	for (const cookie of cookies) {
+		const [name, value] = cookie.split("=");
+		if (name.trim() === "token") {
+			return "true";
+		}
+	}
+	return "false"; // Return null if token cookie is not found
+}
+
+
+would you like me to tell you and clarify what i want you to do next or do you understand

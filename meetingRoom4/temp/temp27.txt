@@ -1,0 +1,318 @@
+section modified in auth.js:
+
+exports.cookies = {
+	// Functions related to cookies
+	async parseCookies(cookieHeader) {
+		return parse(cookieHeader);
+	},
+
+	// Function to verify and attach user from cookies
+	async verifyAndAttachUser(req, res, next) {
+		const cookieHeader = req.headers.cookie;
+		if (!cookieHeader) {
+			return res.status(401).json({ message: "No cookies sent" });
+		}
+
+		const cookies = parse(cookieHeader);
+		const refreshToken = cookies.refreshToken; // Assuming the refresh token is stored as 'refreshToken'
+
+		if (!refreshToken) {
+			// No refresh token present, continue without attaching user
+			return next();
+		}
+
+		try {
+			// Verify the refresh token
+			const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+			req.user = decoded; // Attach the decoded token to the request object
+			next();
+		} catch (error) {
+			// Invalid refresh token, continue without attaching user
+			console.error("Error verifying refresh token:", error);
+			return next();
+		}
+	},
+};
+
+
+login.js:
+document.addEventListener("DOMContentLoaded", function () {
+	const loginForm = document.getElementById("loginForm");
+	const message = document.getElementById("message");
+	const refreshToken = getRefreshTokenFromCookies();
+
+	if (refreshToken) {
+		// Redirect to autologin endpoint
+		window.location.href = "/autologin";
+
+		loginForm.addEventListener("submit", async function (event) {
+			event.preventDefault();
+			const formData = new FormData(loginForm);
+			const username = formData.get("username");
+			const password = formData.get("password");
+
+			try {
+				const response = await fetch("/user/login", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({ username, password }),
+				});
+
+				if (response.ok) {
+					const data = await response.json();
+					// Redirect to dashboard on successful login
+					window.location.href = "../html/dashboard.html";
+				} else {
+					const data = await response.json();
+					message.textContent = data.message;
+				}
+			} catch (error) {
+				console.error("Error:", error);
+				message.textContent = "An error occurred while logging in";
+			}
+		});
+	}
+});
+
+
+userRouter.js:
+
+const express = require("express");
+const router = express.Router();
+const { userController } = require("../controllers/userController");
+
+const { auth, tokens, cookies } = require("../middlewares/auth/auth"); // Import auth
+
+const {
+	registerValidator,
+	loginValidator,
+} = require("../validators/userValidator");
+
+// Route for user registration
+router.post("/register", registerValidator, userController.register);
+
+// Route for user login
+router.post("/login", loginValidator, userController.login);
+
+// route for auto login
+router.post("/autologin", userController.autoLogin);
+
+// Route to get all users
+router.get("/users", userController.getAllUsers);
+
+// Route to get a user by ID
+router.get("/search/userID/:userID", userController.getUserByID);
+
+// Route to get a user by name
+router.get("/search/userName/:username", userController.getUserByName);
+
+// Route to delete a user by ID (requires authentication)
+router.delete(
+	"/delete/userID/:userID",
+	cookies.verifyAndAttachUser,
+	userController.deleteUserByID
+);
+
+// Route to delete a user by username (requires authentication)
+router.delete(
+	"/delete/userName/:username",
+	cookies.verifyAndAttachUser,
+	userController.deleteUserByName
+);
+
+module.exports = router;
+
+
+full userController.js:
+
+// userController.js
+
+const { User, connect } = require("../configs/dbConfig"); // importing relevant model (with sequelize) from dbconfig
+const { auth, tokens, cookies } = require("../middlewares/auth/auth"); // Import the auth object from auth.js
+
+exports.userController = {
+	// Controller function to register a new user
+	async register(req, res) {
+		await connect();
+		try {
+			const { username, password, permission, department } = req.body;
+
+			// Check if a user with the same username already exists
+			const existingUser = await User.findOne({
+				where: { username },
+			});
+			if (existingUser) {
+				return res.status(400).json({ message: "Username is already taken" });
+			}
+
+			// Hash the password
+			const hashedPassword = await auth.hashPassword(password);
+
+			// Create a new user in the database
+			const newUser = await User.create({
+				username,
+				password: hashedPassword,
+				permission,
+				department,
+			});
+
+			res.status(201).json(newUser);
+		} catch (error) {
+			console.error("Error registering user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	async login(req, res) {
+		await connect();
+		try {
+			const { username, password } = req.body;
+
+			// Find the user in the database
+			const user = await User.findOne({
+				where: { username },
+			});
+
+			if (!user) {
+				return res
+					.status(401)
+					.json({ message: "Invalid username or password" });
+			}
+
+			// Check password
+			const passwordMatch = await auth.checkPassword(password, user.password);
+			if (!passwordMatch) {
+				return res
+					.status(401)
+					.json({ message: "Invalid username or password" });
+			}
+
+			// Generate JWT tokens
+			const accessToken = await tokens.generateAccessToken(user.userID);
+			const refreshToken = await tokens.generateRefreshToken(user.userID);
+
+			// Set access token as a cookie
+			res.cookie("accessToken", accessToken, {
+				httpOnly: false, // Access token should be accessible by JavaScript
+			});
+
+			// Set refresh token as an HTTP-only cookie
+			res.cookie("refreshToken", refreshToken, {
+				httpOnly: true, // Refresh token should not be accessible by JavaScript
+			});
+
+			res.json({ message: "Login successful" });
+		} catch (error) {
+			console.error("Error logging in user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+		// function to attempt to auto login users with valid refresh tokens and generating new access tokens 
+	async autoLogin(req, res) {
+        try {
+            // Retrieve the user ID from the decoded refresh token
+            const userID = req.user.userID;
+
+            // Generate a new access token using the user ID
+            const accessToken = await tokens.generateAccessToken(userID);
+
+            // Redirect the user to the dashboard page with the access token as a query parameter
+            res.redirect(`/dashboard?accessToken=${accessToken}`);
+        } catch (error) {
+            console.error("Error during auto-login:", error);
+            res.status(500).json({ message: "Internal server error" });
+        }
+    },
+
+	// Function to get all users
+	async getAllUsers(req, res) {
+		await connect();
+		try {
+			// Retrieve all rooms from the database
+			const users = await User.findAll();
+			res.json(users);
+		} catch (error) {
+			console.error("Error retrieving users:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Controller function to get a room by ID
+	async getUserByID(req, res) {
+		await connect();
+		try {
+			const { userID } = req.params;
+			const user = await User.findByPk(userID);
+			if (!user) {
+				return res.status(404).json({ message: "User not found" });
+			}
+			res.json(user);
+		} catch (error) {
+			console.error("Error retrieving user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Controller function to get a user by name
+	async getUserByName(req, res) {
+		await connect();
+		try {
+			const { username } = req.params;
+			const user = await User.findOne({ where: { username } });
+			if (!user) {
+				return res.status(404).json({ message: "User not found" });
+			}
+			res.json(user);
+		} catch (error) {
+			console.error("Error retrieving user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Controller function to delete a user by ID
+	async deleteUserByID(req, res) {
+		await connect();
+		try {
+			const { userID } = req.params;
+
+			// Find the user by ID
+			const user = await User.findByPk(userID);
+			if (!user) {
+				return res.status(404).json({ message: "User not found" });
+			}
+
+			// Delete the user
+			await user.destroy();
+
+			res.json({ message: "User deleted successfully" });
+		} catch (error) {
+			console.error("Error deleting user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Controller function to delete a user by username
+	async deleteUserByName(req, res) {
+		await connect();
+		try {
+			const { username } = req.params;
+
+			// Find the user by username
+			const user = await User.findOne({ where: { username } });
+			if (!user) {
+				return res.status(404).json({ message: "User not found" });
+			}
+
+			// Delete the user
+			await user.destroy();
+
+			res.json({ message: "User deleted successfully" });
+		} catch (error) {
+			console.error("Error deleting user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+};

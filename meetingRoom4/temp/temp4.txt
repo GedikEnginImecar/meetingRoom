@@ -1,0 +1,191 @@
+Certainly! Let's start with the JavaScript files for logging in, registering, dashboard, rooms, and meetings. Below are the adjusted versions of these files based on your requirements:
+
+**login.js:**
+```javascript
+document.addEventListener("DOMContentLoaded", () => {
+  const loginForm = document.getElementById("login-form");
+  
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    try {
+      const response = await fetch("/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (response.ok) {
+        window.location.href = "/dashboard";
+      } else {
+        const data = await response.json();
+        alert(data.message);
+      }
+    } catch (error) {
+      console.error("Error logging in:", error);
+      alert("An error occurred while logging in. Please try again later.");
+    }
+  });
+});
+```
+
+**register.js:**
+```javascript
+document.addEventListener("DOMContentLoaded", () => {
+  const registerForm = document.getElementById("register-form");
+  
+  registerForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    const permission = document.getElementById("permission").value;
+    const department = document.getElementById("department").value;
+
+    try {
+      const response = await fetch("/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password, permission, department }),
+      });
+
+      if (response.ok) {
+        window.location.href = "/login";
+      } else {
+        const data = await response.json();
+        alert(data.message);
+      }
+    } catch (error) {
+      console.error("Error registering:", error);
+      alert("An error occurred while registering. Please try again later.");
+    }
+  });
+});
+```
+
+**dashboard.js:**
+```javascript
+document.addEventListener("DOMContentLoaded", () => {
+  const calendarBtn = document.getElementById("calendar-btn");
+  const roomsBtn = document.getElementById("rooms-btn");
+  const meetingsBtn = document.getElementById("meetings-btn");
+
+  calendarBtn.addEventListener("click", () => {
+    window.location.href = "/calendar";
+  });
+
+  roomsBtn.addEventListener("click", () => {
+    window.location.href = "/rooms";
+  });
+
+  meetingsBtn.addEventListener("click", () => {
+    window.location.href = "/meetings";
+  });
+});
+```
+
+**rooms.js:**
+```javascript
+// JavaScript code for handling room operations
+// Add your logic here to interact with the server-side API endpoints
+```
+
+**meetings.js:**
+```javascript
+// JavaScript code for handling meeting operations
+// Add your logic here to interact with the server-side API endpoints
+```
+
+Now, let's adjust the HTML files to incorporate the functionality for logging in, registering, dashboard redirection, rooms, and meetings:
+
+**login.html:**
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+</head>
+<body>
+    <h1>Login</h1>
+    <form id="login-form">
+        <input type="text" id="username" placeholder="Username" required><br>
+        <input type="password" id="password" placeholder="Password" required><br>
+        <button type="submit">Login</button>
+    </form>
+    <p>Don't have an account? <a href="/register">Register</a></p>
+
+    <script src="login.js"></script>
+</body>
+</html>
+```
+
+**register.html:**
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+</head>
+<body>
+    <h1>Register</h1>
+    <form id="register-form">
+        <input type="text" id="username" placeholder="Username" required><br>
+        <input type="password" id="password" placeholder="Password" required><br>
+        <input type="number" id="permission" placeholder="Permission Level" required><br>
+        <input type="text" id="department" placeholder="Department" required><br>
+        <button type="submit">Register</button>
+    </form>
+    <p>Already have an account? <a href="/login">Login</a></p>
+
+    <script src="register.js"></script>
+</body>
+</html>
+```
+
+**dashboard.html:**
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+</head>
+<body>
+    <h1>Dashboard</h1>
+    <button id="calendar-btn">Calendar</button>
+    <button id="rooms-btn">Rooms</button>
+    <button id="meetings-btn">Meetings</button>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>
+```
+
+**rooms.html:**
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rooms</title>
+</head>
+<body>
+    <h1>Rooms</h1>
+    <!-- Add your HTML content for displaying, creating, and deleting rooms -->
+    <script src="rooms.js"></script>
+</body>
+</html>
+``

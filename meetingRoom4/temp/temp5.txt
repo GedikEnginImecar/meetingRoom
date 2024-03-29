@@ -1,0 +1,74 @@
+// Fetch all rooms from the server and display them
+async function displayAllRooms() {
+	const response = await fetch("/rooms");
+	const rooms = await response.json();
+
+	const allRoomsList = document.getElementById("allRoomsList");
+	allRoomsList.innerHTML = ""; // Clear previous entries
+
+	rooms.forEach((room) => {
+		const li = document.createElement("li");
+		li.textContent = `${room.roomName} - Capacity: ${room.capacity}`;
+		allRoomsList.appendChild(li);
+	});
+}
+
+// Fetch all rooms from the server and populate select dropdown for deletion
+async function populateDeleteRoomSelect() {
+	const response = await fetch("/rooms");
+	const rooms = await response.json();
+
+	const deleteRoomSelect = document.getElementById("deleteRoomSelect");
+	deleteRoomSelect.innerHTML = ""; // Clear previous entries
+
+	rooms.forEach((room) => {
+		const option = document.createElement("option");
+		option.value = room.id;
+		option.textContent = room.roomName;
+		deleteRoomSelect.appendChild(option);
+	});
+}
+
+// Delete selected room
+async function deleteSelectedRoom() {
+	const roomId = document.getElementById("deleteRoomSelect").value;
+
+	const response = await fetch(`/rooms/${roomId}`, { method: "DELETE" });
+	if (response.ok) {
+		populateDeleteRoomSelect(); // Refresh the select dropdown
+		displayAllRooms(); // Refresh the list of all rooms
+	} else {
+		console.error("Failed to delete room");
+	}
+}
+
+// Add event listener for room creation form submission
+document
+	.getElementById("createRoomForm")
+	.addEventListener("submit", async (event) => {
+		event.preventDefault();
+
+		const roomName = document.getElementById("roomName").value;
+		const capacity = document.getElementById("capacity").value;
+
+		const response = await fetch("/rooms", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({ roomName, capacity }),
+		});
+
+		if (response.ok) {
+			displayAllRooms(); // Refresh the list of all rooms
+			populateDeleteRoomSelect(); // Refresh the select dropdown for deletion
+		} else {
+			console.error("Failed to create room");
+		}
+	});
+
+// Load rooms when the page loads
+window.addEventListener("load", () => {
+	displayAllRooms();
+	populateDeleteRoomSelect();
+});

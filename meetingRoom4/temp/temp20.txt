@@ -1,0 +1,68 @@
+checked the userController:
+	// Controller function to delete a user by ID
+	async deleteUserByID(req, res) {
+		await connect();
+		try {
+			const { userID } = req.params;
+
+			// Find the user by ID
+			const user = await User.findByPk(userID);
+			if (!user) {
+				return res.status(404).json({ message: "User not found" });
+			}
+
+			// Delete the user
+			await user.destroy();
+
+			res.json({ message: "User deleted successfully" });
+		} catch (error) {
+			console.error("Error deleting user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Controller function to delete a user by username
+	async deleteUserByName(req, res) {
+		await connect();
+		try {
+			const { username } = req.params;
+
+			// Find the user by username
+			const user = await User.findOne({ where: { username } });
+			if (!user) {
+				return res.status(404).json({ message: "User not found" });
+			}
+
+			// Delete the user
+			await user.destroy();
+
+			res.json({ message: "User deleted successfully" });
+		} catch (error) {
+			console.error("Error deleting user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+userController imports:
+// userController.js
+
+const { User, connect } = require("../configs/dbConfig"); // importing relevant model (with sequelize) from dbconfig
+const { auth, tokens, cookies } = require("../middlewares/auth/auth"); // Import the auth object from auth.js
+
+userRouter import:
+const { userController } = require("../controllers/userController");
+
+userRouter delete routers:
+// Route to delete a user by ID (requires authentication)
+router.delete(
+	"/delete/userID/:userID",
+	verifyAndAttachUser,
+	userController.deleteUserByID
+);
+
+// Route to delete a user by username (requires authentication)
+router.delete(
+	"/delete/userName/:username",
+	verifyAndAttachUser,
+	userController.deleteUserByName
+);

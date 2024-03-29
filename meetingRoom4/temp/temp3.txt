@@ -1,0 +1,382 @@
+userController.js
+// userController.js
+
+const { User, connect } = require("../configs/dbConfig"); // importing relevant model (with sequelize) from dbconfig
+
+exports.userController = {
+	// Controller function to register a new user
+	async register(req, res) {
+		await connect();
+		try {
+			// Check if a user with the same username already exists
+			const existingUser = await User.findOne({
+				where: { username: req.body.username },
+			});
+			if (existingUser) {
+				return res.status(400).json({ message: "Username is already taken" });
+			}
+
+			// Create a new user in the database
+			const newUser = await User.create({
+				username: req.body.username,
+				password: req.body.password, // Make sure to hash the password before storing it in the database
+				permission: req.body.permission,
+				department: req.body.department,
+			});
+
+			res.status(201).json(newUser);
+		} catch (error) {
+			console.error("Error registering user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Controller function to login a user
+	async login(req, res) {
+		await connect();
+		try {
+			const { username, password } = req.body;
+
+			// Find the user in the database
+			const user = await User.findOne({
+				where: { username: req.body.username },
+			});
+
+			// Verify password
+			if (!user || user.password !== password) {
+				return res
+					.status(401)
+					.json({ message: "Invalid username or password" });
+			}
+
+			res.json(user);
+		} catch (error) {
+			console.error("Error logging in user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Function to get all users
+	async getAllUsers(req, res) {
+		await connect();
+		try {
+			// Retrieve all rooms from the database
+			const users = await User.findAll();
+			res.json(users);
+		} catch (error) {
+			console.error("Error retrieving users:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Controller function to get a room by ID
+	async getUserByID(req, res) {
+		await connect();
+		try {
+			const { userID } = req.params;
+			const user = await User.findByPk(userID);
+			if (!user) {
+				return res.status(404).json({ message: "User not found" });
+			}
+			res.json(user);
+		} catch (error) {
+			console.error("Error retrieving user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Controller function to get a user by name
+	async getUserByName(req, res) {
+		await connect();
+		try {
+			const { username } = req.params;
+			const user = await User.findOne({ where: { username } });
+			if (!user) {
+				return res.status(404).json({ message: "User not found" });
+			}
+			res.json(user);
+		} catch (error) {
+			console.error("Error retrieving user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Controller function to delete a user by ID
+	async deleteUserByID(req, res) {
+		await connect();
+		try {
+			const { userID } = req.params;
+
+			// Find the user by ID
+			const user = await User.findByPk(userID);
+			if (!user) {
+				return res.status(404).json({ message: "User not found" });
+			}
+
+			// Delete the user
+			await user.destroy();
+
+			res.json({ message: "User deleted successfully" });
+		} catch (error) {
+			console.error("Error deleting user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Controller function to delete a user by username
+	async deleteUserByName(req, res) {
+		await connect();
+		try {
+			const { username } = req.params;
+
+			// Find the user by username
+			const user = await User.findOne({ where: { username } });
+			if (!user) {
+				return res.status(404).json({ message: "User not found" });
+			}
+
+			// Delete the user
+			await user.destroy();
+
+			res.json({ message: "User deleted successfully" });
+		} catch (error) {
+			console.error("Error deleting user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+};
+
+meetingController:
+// meetingController.js
+
+const { Meeting, Room, User, connect } = require("../configs/dbConfig");
+exports.meetingController = {
+	async createMeeting(req, res) {
+		await connect();
+		try {
+			const { userID, roomID, meetingDate, meetingStart, meetingEnd } =
+				req.body;
+
+			// Check if the user has permission to create a meeting in the specified room
+
+			const room = await Room.findByPk(roomID);
+			const user = await User.findByPk(userID);
+
+			if (!room || user.permission > room.minPermission) {
+				return res.status(403).json({
+					message: "Insufficient clearance to create a meeting in this room",
+				});
+			}
+
+			// this is where you would try to get userID from the encrypted cookie and attempt to decrypt it to create a meeting
+			// currently pass userID into it manually
+
+			// Create the meeting
+			const meeting = await Meeting.create({
+				userID,
+				roomID,
+				meetingDate,
+				meetingStart,
+				meetingEnd,
+			});
+
+			res.status(201).json(meeting);
+		} catch (error) {
+			console.error("Error creating meeting:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	async getAllMeetings(req, res) {
+		await connect();
+		try {
+			const meetings = await Meeting.findAll();
+			res.json(meetings);
+		} catch (error) {
+			console.error("Error retrieving meetings:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	async getMeetingsByRoomDate(req, res) {
+		await connect();
+		try {
+			const { roomID, meetingDate } = req.params;
+
+			// Find the room by ID
+			const room = await Room.findByPk(roomID);
+			if (!room) {
+				return res.status(404).json({ message: "Room not found" });
+			}
+
+			const meetings = await Meeting.findAll({
+				where: { roomID, meetingDate },
+			});
+			res.json(meetings);
+		} catch (error) {
+			console.error("Error retrieving meetings:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	async deleteMeetingByID(req, res) {
+		await connect();
+		try {
+			const { meetingID } = req.params;
+
+			// Find the meeting by ID
+			const meeting = await Meeting.findByPk(meetingID);
+			if (!meeting) {
+				return res.status(404).json({ message: "Meeting not found" });
+			}
+
+			// Check if the user has permission to delete the meeting (assuming permission checks)
+			// Additional permission logic can be added here
+
+			// Delete the meeting
+			await meeting.destroy();
+
+			res.json({ message: "Meeting deleted successfully" });
+		} catch (error) {
+			console.error("Error deleting meeting:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	async deleteMeetingByInfo(req, res) {
+		await connect();
+		try {
+			const { roomID, meetingDate, meetingStart } = req.params;
+
+			// Find the meeting by ID
+			const meeting = await Meeting.findOne({
+				where: { roomID, meetingDate, meetingStart },
+			});
+			if (!meeting) {
+				return res.status(404).json({ message: "Meeting not found" });
+			}
+
+			// Check if the user has permission to delete the meeting (assuming permission checks)
+			// Additional permission logic can be added here
+
+			// Delete the meeting
+			await meeting.destroy();
+
+			res.json({ message: "Meeting deleted successfully" });
+		} catch (error) {
+			console.error("Error deleting meeting:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+};
+
+roomController:
+const { Room, connect } = require("../configs/dbConfig"); // importing relevant model (with sequelize) from dbconfig
+
+exports.roomController = {
+	// Controller functions for room operations
+	async createRoom(req, res) {
+		await connect();
+		try {
+			// Extract room data from request body
+			const { roomName, minPermission, department } = req.body;
+
+			// Create a new room record in the database
+			const newRoom = await Room.create({
+				roomName,
+				minPermission,
+				department,
+			});
+
+			res.status(201).json(newRoom);
+		} catch (error) {
+			console.error("Error creating room:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Function to get all rooms
+	async getAllRooms(req, res) {
+		await connect();
+		try {
+			// Retrieve all rooms from the database
+			const rooms = await Room.findAll();
+			res.json(rooms);
+		} catch (error) {
+			console.error("Error retrieving rooms:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Controller function to get a room by ID
+	async getRoomByID(req, res) {
+		await connect();
+		try {
+			const { roomID } = req.params;
+			const room = await Room.findByPk(roomID);
+			if (!room) {
+				return res.status(404).json({ message: "Room not found" });
+			}
+			res.json(room);
+		} catch (error) {
+			console.error("Error retrieving room:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Controller function to get a room by name
+	async getRoomByName(req, res) {
+		await connect();
+		try {
+			const { roomName } = req.params;
+			const room = await Room.findOne({ where: { roomName } });
+			if (!room) {
+				return res.status(404).json({ message: "Room not found" });
+			}
+			res.json(room);
+		} catch (error) {
+			console.error("Error retrieving room:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	async deleteRoomByID(req, res) {
+		await connect();
+		try {
+			// Extract room ID from request parameters
+			const { roomID } = req.params;
+
+			// Find the room by ID and delete it
+			const deletedRoom = await Room.destroy({ where: { roomID: roomID } });
+
+			if (!deletedRoom) {
+				return res.status(404).json({ message: "Room not found" });
+			}
+
+			res.json({ message: "Room deleted successfully" });
+		} catch (error) {
+			console.error("Error deleting room:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	async deleteRoomByName(req, res) {
+		await connect();
+		try {
+			// Extract room name from request parameters
+			const { roomName } = req.params;
+
+			// Find the room by name and delete it
+			const deletedRoom = await Room.destroy({ where: { roomName } });
+
+			if (!deletedRoom) {
+				return res.status(404).json({ message: "Room not found" });
+			}
+
+			res.json({ message: "Room deleted successfully" });
+		} catch (error) {
+			console.error("Error deleting room:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+};

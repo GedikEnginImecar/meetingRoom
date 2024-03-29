@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0"
+		/>
+		<title>LED Control and MicroEsp Addition</title>
+		<link
+			rel="stylesheet"
+			href="../css/leds.css"
+		/>
+	</head>
+	<body>
+		<main class="main-container">
+			<h1 class="main-title">LED Control and MicroEsp Addition</h1>
+
+			<div class="led-control">
+				<h2>LED Control</h2>
+				<!-- Form for LED Control -->
+				<form id="ledControlForm">
+					<label for="microEspSelect">Select MicroEsp:</label>
+					<select
+						name="microEsp"
+						id="microEspSelect"
+					>
+						<option
+							value=""
+							data-ip=""
+						>
+							-- Please choose an option --
+						</option>
+						<!-- Options will be dynamically populated by JavaScript -->
+					</select>
+
+					<label for="hueSlider">Hue: <span id="hueValue">0</span></label>
+					<input
+						type="range"
+						id="hueSlider"
+						class="slider"
+						min="0"
+						max="255"
+					/>
+
+					<label for="saturationSlider"
+						>Saturation: <span id="saturationValue">0</span></label
+					>
+					<input
+						type="range"
+						id="saturationSlider"
+						class="slider"
+						min="0"
+						max="255"
+					/>
+
+					<label for="valueSlider"
+						>Value (Brightness): <span id="valueBrightness">0</span></label
+					>
+					<input
+						type="range"
+						id="valueSlider"
+						class="slider"
+						min="0"
+						max="255"
+					/>
+
+					<!-- First Button Row -->
+					<div class="button-row">
+						<button
+							type="button"
+							id="redLeds"
+						>
+							Red LEDs
+						</button>
+						<button
+							type="button"
+							id="greenLeds"
+						>
+							Green LEDs
+						</button>
+						<button
+							type="button"
+							id="clearLeds"
+						>
+							Clear LEDs
+						</button>
+					</div>
+
+					<!-- Second Button Row -->
+					<div class="button-row-2">
+						<button
+							type="button"
+							id="blinkToggleButton"
+						>
+							Toggle Blink
+						</button>
+						<button
+							type="button"
+							id="changeLedButton"
+						>
+							Change LED Color
+						</button>
+					</div>
+				</form>
+			</div>
+
+			<div class="add-microesp">
+				<h2>Add MicroEsp</h2>
+				<!-- Form for adding MicroEsp -->
+				<form id="addMicroEspForm">
+					<label for="roomSelect">Room Name:</label>
+					<select
+						name="roomID"
+						id="roomSelect"
+					>
+						<option value="">-- Please choose a room --</option>
+					</select>
+
+					<label for="deviceTypeSelect">Device Type:</label>
+					<select
+						name="deviceType"
+						id="deviceTypeSelect"
+					>
+						<option value="ledBar">LED Bar</option>
+						<option value="buttonBox">Button Box</option>
+					</select>
+
+					<label for="microEspIP">MicroEsp IP:</label>
+					<input
+						type="text"
+						id="microEspIP"
+						name="microEspIP"
+						required
+						placeholder="IP Address:Port"
+					/>
+
+					<button type="submit">Add MicroEsp</button>
+					<button
+						type="button"
+						id="deleteByIPButton"
+					>
+						Delete By IP
+					</button>
+				</form>
+			</div>
+		</main>
+
+		<script src="../js/leds.js"></script>
+	</body>
+</html>

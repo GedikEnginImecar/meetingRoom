@@ -1,0 +1,532 @@
+what i want is the users entry point is index.html, they can then either choose register or login to be redirected.
+if they choose register, complete registration i want them to be redirected to index.html so they can then login.
+when they login successfully, they are redirected to dashboard.html
+
+this is the file structure of the project:
+┣ 📂.vscode
+┃ ┗ 📜settings.json
+┣ 📂auth
+┃ ┗ 📜info.md
+┣ 📂configs
+┃ ┣ 📜dbConfig.js
+┃ ┗ 📜info.md
+┣ 📂controllers
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingController.js
+┃ ┣ 📜roomController.js
+┃ ┗ 📜userController.js
+┣ 📂middlewares
+┃ ┗ 📜info.md
+┣ 📂models
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingModel.js
+┃ ┣ 📜roomModel.js
+┃ ┗ 📜userModel.js
+┣ 📂old
+┃ ┣ 📜meetingController.js
+┃ ┣ 📜roomController.js
+┃ ┗ 📜userController.js
+┣ 📂public
+┃ ┣ 📂html
+┃ ┃ ┣ 📜calender.html
+┃ ┃ ┣ 📜dashboard.html
+┃ ┃ ┣ 📜login.html
+┃ ┃ ┣ 📜meetings.html
+┃ ┃ ┣ 📜register.html
+┃ ┃ ┗ 📜rooms.html
+┃ ┣ 📂js
+┃ ┃ ┣ 📜calender.js
+┃ ┃ ┣ 📜dashboard.js
+┃ ┃ ┣ 📜login.js
+┃ ┃ ┣ 📜meetings.js
+┃ ┃ ┣ 📜register.js
+┃ ┃ ┗ 📜rooms.js
+┃ ┗ 📜index.html
+┣ 📂routers
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingRouter.js
+┃ ┣ 📜roomRouter.js
+┃ ┗ 📜userRouter.js
+┣ 📂temp
+┃ ┣ 📜temp.txt
+┃ ┣ 📜temp2.txt
+┃ ┣ 📜temp3.txt
+┃ ┣ 📜temp4.txt
+┃ ┣ 📜temp5.txt
+┃ ┗ 📜temp6.txt
+┣ 📂validators
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingValidator.js
+┃ ┣ 📜roomValidator.js
+┃ ┗ 📜userValidator.js
+┣ 📜.env
+┣ 📜.gitignore
+┣ 📜package.json
+┣ 📜server.js
+┗ 📜test.js
+
+
+this is the backend code:
+
+the userController:
+// userController.js
+
+const { User, connect } = require("../configs/dbConfig"); // importing relevant model (with sequelize) from dbconfig
+
+exports.userController = {
+	// Controller function to register a new user
+	async register(req, res) {
+		await connect();
+		try {
+			// Check if a user with the same username already exists
+			const existingUser = await User.findOne({
+				where: { username: req.body.username },
+			});
+			if (existingUser) {
+				return res.status(400).json({ message: "Username is already taken" });
+			}
+
+			// Create a new user in the database
+			const newUser = await User.create({
+				username: req.body.username,
+				password: req.body.password, // Make sure to hash the password before storing it in the database
+				permission: req.body.permission,
+				department: req.body.department,
+			});
+
+			res.status(201).json(newUser);
+		} catch (error) {
+			console.error("Error registering user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Controller function to login a user
+	async login(req, res) {
+		await connect();
+		try {
+			const { username, password } = req.body;
+
+			// Find the user in the database
+			const user = await User.findOne({
+				where: { username: req.body.username },
+			});
+
+			// Verify password
+			if (!user || user.password !== password) {
+				return res
+					.status(401)
+					.json({ message: "Invalid username or password" });
+			}
+
+			res.json(user);
+		} catch (error) {
+			console.error("Error logging in user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Function to get all users
+	async getAllUsers(req, res) {
+		await connect();
+		try {
+			// Retrieve all rooms from the database
+			const users = await User.findAll();
+			res.json(users);
+		} catch (error) {
+			console.error("Error retrieving users:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Controller function to get a room by ID
+	async getUserByID(req, res) {
+		await connect();
+		try {
+			const { userID } = req.params;
+			const user = await User.findByPk(userID);
+			if (!user) {
+				return res.status(404).json({ message: "User not found" });
+			}
+			res.json(user);
+		} catch (error) {
+			console.error("Error retrieving user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Controller function to get a user by name
+	async getUserByName(req, res) {
+		await connect();
+		try {
+			const { username } = req.params;
+			const user = await User.findOne({ where: { username } });
+			if (!user) {
+				return res.status(404).json({ message: "User not found" });
+			}
+			res.json(user);
+		} catch (error) {
+			console.error("Error retrieving user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Controller function to delete a user by ID
+	async deleteUserByID(req, res) {
+		await connect();
+		try {
+			const { userID } = req.params;
+
+			// Find the user by ID
+			const user = await User.findByPk(userID);
+			if (!user) {
+				return res.status(404).json({ message: "User not found" });
+			}
+
+			// Delete the user
+			await user.destroy();
+
+			res.json({ message: "User deleted successfully" });
+		} catch (error) {
+			console.error("Error deleting user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	// Controller function to delete a user by username
+	async deleteUserByName(req, res) {
+		await connect();
+		try {
+			const { username } = req.params;
+
+			// Find the user by username
+			const user = await User.findOne({ where: { username } });
+			if (!user) {
+				return res.status(404).json({ message: "User not found" });
+			}
+
+			// Delete the user
+			await user.destroy();
+
+			res.json({ message: "User deleted successfully" });
+		} catch (error) {
+			console.error("Error deleting user:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+};
+
+userRouter:
+// userRouter.js
+
+const express = require("express");
+const router = express.Router();
+const { userController } = require("../controllers/userController");
+
+const {
+	registerValidator,
+	loginValidator,
+} = require("../validators/userValidator");
+
+// Route for user registration
+router.post("/register", registerValidator, userController.register);
+
+// Route for user login
+router.post("/login", loginValidator, userController.login);
+
+// Route to get all users
+router.get("/users", userController.getAllUsers);
+
+// Route to get a user by ID
+router.get("/search/userID/:userID", userController.getUserByID);
+
+// Route to get a user by name
+router.get("/search/userName/:username", userController.getUserByName);
+
+// Route to delete a user by ID
+router.delete("/delete/userID/:userID", userController.deleteUserByID);
+
+// Route to delete a user by username
+router.delete("/delete/userName/:username", userController.deleteUserByName);
+
+module.exports = router;
+
+
+server.js:
+const express = require("express");
+const userRouter = require("./routers/userRouter");
+const roomRouter = require("./routers/roomRouter");
+const meetingRouter = require("./routers/meetingRouter");
+const { connect } = require("./configs/dbConfig"); // Import the connect function
+require("dotenv").config();
+
+const app = express();
+const port = process.env.PORT || 8080;
+
+app.use(express.json());
+
+app.use("/user", userRouter);
+app.use("/room", roomRouter);
+app.use("/meeting", meetingRouter);
+
+// Connect to the database when the server starts
+connect()
+	.then(() => {
+		// Start the server after establishing the database connection
+		app.listen(port, () => {
+			console.log(`Server is running on port ${port}`);
+		});
+	})
+	.catch((error) => {
+		console.error("Error connecting to the database:", error);
+		process.exit(1); // Exit with error
+	});
+
+
+userValidator:
+const { body, validationResult } = require("express-validator");
+
+// Register Validator
+exports.registerValidator = [
+	body("username").notEmpty().isString(),
+	body("password").notEmpty().isString(),
+	body("permission").notEmpty().isIn([0, 1, 2, 3]).toInt(),
+	body("department")
+		.notEmpty()
+		.isIn(["software", "engineering", "design", "owner"]),
+	(req, res, next) => {
+		const errors = validationResult(req);
+
+		if (!errors.isEmpty()) {
+			return res.status(400).json({ errors: errors.array() });
+		}
+		next();
+	},
+];
+
+// Login Validator
+exports.loginValidator = [
+	body("username").notEmpty().isString(),
+	body("password").notEmpty().isString(),
+	(req, res, next) => {
+		const errors = validationResult(req);
+
+		if (!errors.isEmpty()) {
+			return res.status(400).json({ errors: errors.array() });
+		}
+		next();
+	},
+];
+
+dbConfig.js:
+const { Sequelize } = require("sequelize");
+const userModel = require("../models/userModel");
+const roomModel = require("../models/roomModel");
+const meetingModel = require("../models/meetingModel");
+require("dotenv").config();
+
+const sequelize = new Sequelize({
+	host: process.env.DB_HOST,
+	username: process.env.DB_USER,
+	password: process.env.DB_PASSWORD,
+	database: process.env.DB_NAME,
+	dialect: process.env.DB_DIALECT,
+	pool: {
+		max: 5,
+		min: 0,
+		acquire: 30000,
+		idle: 10000,
+	},
+});
+
+const User = userModel(sequelize, Sequelize);
+const Room = roomModel(sequelize, Sequelize);
+const Meeting = meetingModel(sequelize, Sequelize);
+
+// Define associations
+User.hasMany(Meeting, { foreignKey: "userID" });
+Meeting.belongsTo(User, { foreignKey: "userID" });
+
+Room.hasMany(Meeting, { foreignKey: "roomID" });
+Meeting.belongsTo(Room, { foreignKey: "roomID" });
+
+// Custom Sync function to ensure correct order of table creation
+async function customSync() {
+	try {
+		await sequelize.authenticate();
+		console.log("Connection has been established successfully.");
+
+		// Sync Users and Rooms first
+		await User.sync({ force: false });
+		console.log("Users table synced successfully.");
+
+		await Room.sync({ force: false });
+		console.log("Rooms table synced successfully.");
+
+		// Sync Meetings last to ensure foreign keys are available
+		await Meeting.sync({ force: false });
+		console.log("Meetings table synced successfully.");
+
+		console.log("All tables synced successfully.");
+	} catch (error) {
+		console.error("Error syncing tables: ", error);
+	}
+}
+
+// Call customSync to start the synchronization process to allow the
+customSync();
+
+// Connect function
+async function connect() {
+	try {
+		await sequelize.authenticate();
+		console.log("Connection has been established successfully.");
+	} catch (error) {
+		console.error("Unable to connect to the database:", error);
+	}
+}
+
+// Close function
+async function close() {
+	try {
+		await sequelize.close();
+		console.log("Connection has been closed successfully.");
+	} catch (error) {
+		console.error("Unable to close the database connection:", error);
+	}
+}
+
+module.exports = { sequelize, User, Room, Meeting, connect, close };
+
+this is the login html and js:
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Login</title>
+		<link
+			rel="stylesheet"
+			href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css"
+			integrity="sha512-EZLkOqwILORob+p0BXZc+Vm3RgJBOe1Iq/0fiI7r/wJgzOFZMlsqTa29UEl6v6U6gsV4uIpsNZoV32YZqrCRCQ=="
+			crossorigin="anonymous"
+			referrerpolicy="no-referrer"
+		/>
+	</head>
+	<body>
+		<div class="container">
+			<h2>Login</h2>
+			<form id="loginForm">
+				<label for="username">Username</label>
+				<input type="text" id="username" name="username" required />
+				<label for="password">Password</label>
+				<input type="password" id="password" name="password" required />
+				<button type="submit">Login</button>
+			</form>
+			<p id="message"></p>
+		</div>
+		<script src="../js/login.js"></script>
+	</body>
+</html>
+
+document.addEventListener("DOMContentLoaded", function () {
+	const loginForm = document.getElementById("loginForm");
+	const message = document.getElementById("message");
+
+	loginForm.addEventListener("submit", async function (event) {
+		event.preventDefault();
+		const formData = new FormData(loginForm);
+		const username = formData.get("username");
+		const password = formData.get("password");
+
+		try {
+			const response = await fetch("/login", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ username, password }),
+			});
+
+			if (response.ok) {
+				window.location.href = "/dashboard"; // Redirect to dashboard on successful login
+			} else {
+				const data = await response.json();
+				message.textContent = data.message;
+			}
+		} catch (error) {
+			console.error("Error:", error);
+			message.textContent = "An error occurred while logging in";
+		}
+	});
+});
+
+
+this is the register html and js
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Register</title>
+		<link
+			rel="stylesheet"
+			href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css"
+			integrity="sha512-EZLkOqwILORob+p0BXZc+Vm3RgJBOe1Iq/0fiI7r/wJgzOFZMlsqTa29UEl6v6U6gsV4uIpsNZoV32YZqrCRCQ=="
+			crossorigin="anonymous"
+			referrerpolicy="no-referrer"
+		/>
+	</head>
+	<body>
+		<div class="container">
+			<h2>Register</h2>
+			<form id="registerForm">
+				<label for="username">Username</label>
+				<input type="text" id="username" name="username" required />
+				<label for="password">Password</label>
+				<input type="password" id="password" name="password" required />
+				<label for="permission">Permission</label>
+				<input type="text" id="permission" name="permission" required />
+				<label for="department">Department</label>
+				<input type="text" id="department" name="department" required />
+				<button type="submit">Register</button>
+			</form>
+			<p id="message"></p>
+		</div>
+		<script src="../js/register.js"></script>
+	</body>
+</html>
+
+document.addEventListener("DOMContentLoaded", function () {
+	const registerForm = document.getElementById("registerForm");
+	const message = document.getElementById("message");
+
+	registerForm.addEventListener("submit", async function (event) {
+		event.preventDefault();
+		const formData = new FormData(registerForm);
+		const username = formData.get("username");
+		const password = formData.get("password");
+		const permission = formData.get("permission");
+		const department = formData.get("department");
+
+		try {
+			const response = await fetch("/register", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ username, password, permission, department }),
+			});
+
+			if (response.ok) {
+				window.location.href = "/login"; // Redirect to login page after successful registration
+			} else {
+				const data = await response.json();
+				message.textContent = data.message;
+			}
+		} catch (error) {
+			console.error("Error:", error);
+			message.textContent = "An error occurred while registering";
+		}
+	});
+});

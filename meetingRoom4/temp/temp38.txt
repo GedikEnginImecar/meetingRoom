@@ -1,0 +1,264 @@
+this is the project file structure:
+┣ 📂.vscode
+┃ ┗ 📜settings.json
+┣ 📂configs
+┃ ┣ 📜dbConfig.js
+┃ ┗ 📜info.md
+┣ 📂controllers
+┃ ┣ 📜info.md
+┃ ┣ 📜ledController.js
+┃ ┣ 📜meetingController.js
+┃ ┣ 📜microEspController.js
+┃ ┣ 📜roomController.js
+┃ ┗ 📜userController.js
+┣ 📂middlewares
+┃ ┣ 📂auth
+┃ ┃ ┣ 📜auth.js
+┃ ┃ ┗ 📜info.md
+┃ ┣ 📂dtos
+┃ ┃ ┣ 📜appInfoDTO.js
+┃ ┃ ┣ 📜meetingDTO.js
+┃ ┃ ┣ 📜permissionDTO.js
+┃ ┃ ┣ 📜roomDTO.js
+┃ ┃ ┗ 📜userDTO.js
+┃ ┣ 📂responses
+┃ ┃ ┣ 📜authenticationResponse.js
+┃ ┃ ┣ 📜errorResponse.js
+┃ ┃ ┣ 📜permissionResponse.js
+┃ ┃ ┣ 📜resourceResponse.js
+┃ ┃ ┣ 📜successResponse.js
+┃ ┃ ┗ 📜validationResponse.js
+┃ ┗ 📜info.md
+┣ 📂models
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingModel.js
+┃ ┣ 📜microEspModel.js
+┃ ┣ 📜roomModel.js
+┃ ┗ 📜userModel.js
+┣ 📂public
+┃ ┣ 📂css
+┃ ┃ ┣ 📜dashboard.css
+┃ ┃ ┣ 📜leds.css
+┃ ┃ ┣ 📜login.css
+┃ ┃ ┣ 📜meetings.css
+┃ ┃ ┣ 📜register.css
+┃ ┃ ┗ 📜rooms.css
+┃ ┣ 📂html
+┃ ┃ ┣ 📜dashboard.html
+┃ ┃ ┣ 📜leds.html
+┃ ┃ ┣ 📜login.html
+┃ ┃ ┣ 📜meetings.html
+┃ ┃ ┣ 📜register.html
+┃ ┃ ┗ 📜rooms.html
+┃ ┣ 📂js
+┃ ┃ ┣ 📜dashboard.js
+┃ ┃ ┣ 📜leds.js
+┃ ┃ ┣ 📜login.js
+┃ ┃ ┣ 📜meetings.js
+┃ ┃ ┣ 📜register.js
+┃ ┃ ┗ 📜rooms.js
+┃ ┣ 📜index.html
+┃ ┗ 📜info.md
+┣ 📂routers
+┃ ┣ 📜authRouter.js
+┃ ┣ 📜info.md
+┃ ┣ 📜ledRouter.js
+┃ ┣ 📜meetingRouter.js
+┃ ┣ 📜microEspRouter.js
+┃ ┣ 📜roomRouter.js
+┃ ┗ 📜userRouter.js
+┣ 📂validators
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingValidator.js
+┃ ┣ 📜roomValidator.js
+┃ ┗ 📜userValidator.js
+┣ 📜.env
+┣ 📜.gitignore
+┣ 📜package.json
+┗ 📜server.js
+
+roomController extract:
+const { Room, connect } = require("../configs/dbConfig"); // importing relevant model (with sequelize) from dbconfig
+
+exports.roomController = {
+	// Controller functions for room operations
+
+	// Function to get all rooms - router doesn't have authentication so backend LED controllers can use it without cookies
+	async getAllRoomsLed() {
+		await connect();
+		try {
+			// Retrieve all rooms from the database
+			const rooms = await Room.findAll();
+			return rooms;
+		} catch (error) {
+			console.error("Error retrieving rooms:", error);
+			throw error;
+		}
+	},
+
+};
+
+meetingController extract:
+
+exports.meetingController = {
+	async getMeetingsByRoomDateLed(roomID, meetingDate) {
+		await connect();
+		try {
+			// Find the room by ID
+			const room = await Room.findByPk(roomID);
+			if (!room) {
+				throw new Error("Room not found");
+			}
+
+			const meetings = await Meeting.findAll({
+				where: { roomID, meetingDate },
+			});
+			return meetings;
+		} catch (error) {
+			console.error("Error retrieving meetings:", error);
+			throw error;
+		}
+	}
+};
+
+roomModel.js:
+module.exports = (sequelize, DataTypes) => {
+	const Room = sequelize.define(`room`, {
+		roomID: {
+			type: DataTypes.INTEGER,
+			primaryKey: true,
+			autoIncrement: true,
+		},
+		roomName: {
+			type: DataTypes.TEXT,
+			allowNull: false,
+		},
+		minPermission: {
+			type: DataTypes.INTEGER,
+			allowNull: false,
+		},
+		department: {
+			type: DataTypes.TEXT,
+			allowNull: false,
+		},
+	});
+
+	return Room;
+};
+
+
+meetingModel.js:
+module.exports = (sequelize, DataTypes) => {
+	const Meeting = sequelize.define(`meeting`, {
+		meetingID: {
+			type: DataTypes.INTEGER,
+			primaryKey: true,
+			autoIncrement: true,
+		},
+		meetingDate: {
+			type: DataTypes.DATEONLY,
+			allowNull: false,
+		},
+		meetingStart: {
+			type: DataTypes.TIME,
+			allowNull: false,
+		},
+		meetingEnd: {
+			type: DataTypes.TIME,
+			allowNull: false,
+		},
+		userID: {
+			type: DataTypes.INTEGER,
+			allowNull: false,
+			references: {
+				model: "users",
+				key: "userID",
+			},
+		},
+		roomID: {
+			type: DataTypes.INTEGER,
+			allowNull: false,
+			references: {
+				model: "rooms",
+				key: "roomID",
+			},
+		},
+	});
+	return Meeting;
+};
+
+
+microEspModel.js:
+module.exports = (sequelize, DataTypes) => {
+	const MicroEsp = sequelize.define(`microEsp`, {
+		microEspID: {
+			type: DataTypes.INTEGER,
+			primaryKey: true,
+			autoIncrement: true,
+		},
+		microEspIP: {
+			type: DataTypes.TEXT,
+			allowNull: false,
+		},
+		microEspLed: {
+			type: DataTypes.BOOLEAN, // True = esp inside led bar, False = inside button box
+			allowNull: false,
+		},
+		roomID: {
+			type: DataTypes.INTEGER,
+			allowNull: false,
+			references: {
+				model: "rooms",
+				key: "roomID",
+			},
+		},
+	});
+
+	return MicroEsp;
+};
+
+
+------
+
+
+inside of ledController.js there is are 2 functions:
+    // we want to build checkNextMeeting
+	async checkNextMeeting() {
+        ...
+        ...
+        ...
+	},
+
+    // the function to set and control leds
+	async setLedsInternal({ microEspIP, hue, saturation, value }) {
+		try {
+			// Construct URL with path variables
+			const url = `http://${microEspIP}/esp32/setLeds/${hue}/${saturation}/${value}`;
+			// Send GET request with Axios
+			const response = await axios.get(url);
+			console.log(response.data); // Log the response data
+		} catch (error) {
+			console.error("Error setting LEDs internally:", error);
+		}
+	},
+
+
+This checkNextMeeting function first gets the current date and time. 
+It then fetches all rooms using getAllRoomsLed,from roomController
+
+For each room, it retrieves meetings scheduled for the current date using getMeetingsByRoomDateLed from meetingController
+
+It iterates over each meeting to determine its status relative to the current time:
+
+status 1:
+if it falls inbetween the meeting start time and 15 minutes before that (meeting start 1800, before meeting is then 1745), i want setLedsInternal to run for yellow, console log the name of the room, and the time the meeting starts
+
+status 2:
+if it falls between the meetings start time and end time, run setLedsInternal for red, console log the name of the room, and how long until meeting ends
+
+status 3:
+if it is after the meeting (meeting end is 1815, then after meeting is up to 1830), during that 15 min window i want setLedsInternal - green, console log the name of the room, and how much time has elapsed since meeting ended
+
+status 1 should start 15 minutes before meeting starts
+status 2 should be the entire length of the meeting
+status 3 should last 15 minutes from the end of the meeting

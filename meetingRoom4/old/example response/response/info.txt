@@ -1,0 +1,23 @@
+the response structure to follow, instead of just using res.send
+
+without trimming:
+
+const register = catchAsync(async (req, res) => {
+  role = await roleService.getRoleByName('default');
+  req.body.roleId = role.id;
+  const user = await userService.createUser(req.body);
+  const tokens = await tokenService.generateAuthTokens(user);
+  res.send(imecarResponse({ user: { id: user.id }, tokens }));
+});
+
+
+to trim using dtos example call:
+
+const login = catchAsync(async (req, res) => {
+  const { email, password, tenantId } = req.body;
+  const user = await authService.loginUserWithEmailAndPassword(email, password, tenantId);
+  const tokens = await tokenService.generateAuthTokens(user);
+  res.send(imecarResponse({ user: UserDTO.convert2DTO(user), tokens }));
+});
+
+

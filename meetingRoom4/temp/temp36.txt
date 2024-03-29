@@ -1,0 +1,215 @@
+-- ledController.js
+// can be used to control more advanced led functions that cant easily be defined as preset functions within the cpp code of the esp32
+const axios = require("axios");
+const { roomController } = require("../controllers/roomController");
+const { meetingController } = require("../controllers/meetingController");
+
+const stringToHue = {
+	blue: 170,
+	blueGreen: 127,
+	green: 85,
+	greenYellow: 42,
+	yellow: 21,
+	yellowOrange: 15,
+	orange: 10,
+	orangeRed: 5,
+	red: 0,
+	redViolet: 213,
+	violet: 191,
+	violetBlue: 170,
+};
+
+exports.ledControls = {
+	async setLeds(req, res) {
+		try {
+			const { hue, saturation, value } = req.body;
+			// Construct URL with path variables
+			const url = `http://192.168.4.1:8080/esp32/setLeds/${hue}/${saturation}/${value}`;
+			// Send GET request with Axios
+			const response = await axios.get(url);
+			res.json(response.data);
+		} catch (error) {
+			res.status(500).json({ error: error.message });
+		}
+	},
+
+	async toggleBlink(req, res) {
+		try {
+			// Implement logic to toggle LED blinking
+			res.json({ message: "LED blinking toggled" });
+		} catch (error) {
+			res.status(500).json({ error: error.message });
+		}
+	},
+
+	async checkNextMeeting(req, res) {
+		try {
+			// Get current date and time
+			const currentDate = new Date();
+
+			// Get all rooms using getAllRoomsLed
+			const rooms = await roomController.getAllRoomsLed();
+
+			// Iterate over each room
+			for (const room of rooms) {
+				// Get meetings for the current room on the current date
+				const meetings = await meetingController.getMeetingsByRoomDateLed(
+					room.roomID,
+					currentDate.toISOString().split("T")[0]
+				);
+
+				// Iterate over meetings to find the next one
+				for (const meeting of meetings) {
+					const meetingStartDate = new Date(
+						meeting.meetingDate + "T" + meeting.meetingStart
+					);
+					const meetingEndDate = new Date(
+						meeting.meetingDate + "T" + meeting.meetingEnd
+					);
+
+					// Check if the meeting starts within the next 15 minutes and has not already started
+					if (
+						meetingStartDate.getTime() > currentDate.getTime() &&
+						meetingStartDate.getTime() - currentDate.getTime() <= 15 * 60 * 1000
+					) {
+						console.log(`Meeting in 15 minutes in ${room.roomName} - Yellow`);
+						// Execute setLedsUI with yellow color
+						await this.setLedsUI({
+							microEspIP: room.microEspIP, // Assuming each room has a MicroEsp associated with it
+							hue: stringToHue.yellow,
+							saturation: 255, // Assuming full saturation
+							value: 255, // Assuming full brightness
+						});
+					}
+
+					// Check if the meeting is ongoing
+					if (
+						currentDate >= meetingStartDate &&
+						currentDate <= meetingEndDate
+					) {
+						console.log(`Meeting ongoing in ${room.roomName} - Red`);
+						// Execute setLedsUI with red color
+						await this.setLedsUI({
+							microEspIP: room.microEspIP, // Assuming each room has a MicroEsp associated with it
+							hue: stringToHue.red,
+							saturation: 255, // Assuming full saturation
+							value: 255, // Assuming full brightness
+						});
+					}
+
+					// Check if the meeting has ended within the last 15 minutes
+					if (
+						currentDate > meetingEndDate &&
+						currentDate.getTime() - meetingEndDate.getTime() <= 15 * 60 * 1000
+					) {
+						console.log(`Meeting ended in ${room.roomName} - Green`);
+						// Execute setLedsUI with green color for 15 minutes
+						await this.setLedsUI({
+							microEspIP: room.microEspIP, // Assuming each room has a MicroEsp associated with it
+							hue: stringToHue.green,
+							saturation: 255, // Assuming full saturation
+							value: 255, // Assuming full brightness
+						});
+					}
+				}
+			}
+		} catch (error) {
+			console.error("Error checking next meeting:", error);
+		}
+	},
+
+	async setLedsUI(req, res) {
+		try {
+			const { microEspIP, hue, saturation, value } = req.body;
+			console.log(req.body);
+
+			// Construct URL with query parameters
+			const url = `http://${microEspIP}/esp32/setLeds?hue=${hue}&saturation=${saturation}&value=${value}`;
+			// Send GET request with Axios
+			const response = await axios.get(url);
+			res.json(response.data);
+		} catch (error) {
+			res.status(500).json({ error: error.message });
+		}
+	},
+};
+
+
+
+-- server.js
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+
+const userRouter = require("./routers/userRouter");
+const roomRouter = require("./routers/roomRouter");
+const meetingRouter = require("./routers/meetingRouter");
+const authRouter = require("./routers/authRouter");
+const ledRouter = require("./routers/ledRouter");
+const microEspRouter = require("./routers/microEspRouter");
+
+const cron = require("node-cron");
+const cookieParser = require("cookie-parser");
+const { connect } = require("./configs/dbConfig");
+
+const app = express();
+const port = process.env.PORT || 8080;
+
+app.use(express.json());
+app.use(cookieParser());
+app.use(express.static("public"));
+app.use(cors());
+
+// Mount routers
+app.use("/user", userRouter);
+app.use("/room", roomRouter);
+app.use("/meeting", meetingRouter);
+app.use("/auth", authRouter);
+app.use("/led", ledRouter);
+app.use("/microesp", microEspRouter);
+
+async function startServer() {
+	try {
+		await connect();
+
+		// Start the server after establishing the database connection
+		const server = app.listen(port, () => {
+			console.log(`Server is running on port ${port}`);
+		});
+
+		// Initial check after 2.5 seconds
+		setTimeout(() => {
+			console.log("Running initial checkNextMeeting after 2.5 seconds");
+			ledRouter.get("/checkNextMeeting");
+		}, 2500);
+
+		// Schedule the checkNextMeeting function to run every 5 minutes
+		cron.schedule("*/30 * * * * *", () => {
+			console.log("Running checkNextMeeting every 5 minutes");
+			ledRouter.get("/checkNextMeeting");
+		});
+	} catch (error) {
+		console.error("Error connecting to the database:", error);
+		process.exit(1);
+	}
+}
+
+startServer();
+
+
+
+i want it run check next meeting to run every 30 seconds,
+there are 3 states:
+
+state 1:
+if it falls inbetween the meeting start time and 15 minutes before that (meeting start 1800, before meeting is then 1745), i want the set led to yellow to run, console log the name of the room, and the time the meeting starts
+
+state 2:
+if it falls between the meetings start time and end time, leds should be red, console log the name of the room, and how long until meeting ends
+
+state 3:
+if it is after the meeting (meeting end is 1815, then after meeting is up to 1830), during that 15 min window i want the leds to be green, console log the name of the room, and how much time has elapsed since meeting ended
+
+state 1 should start 15 minutes before meeting starts
+state 2 should be the entire length of the meeting
+state 3 should last 15 minutes from the end of the meeting

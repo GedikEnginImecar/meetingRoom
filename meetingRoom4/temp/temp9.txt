@@ -1,0 +1,90 @@
+ive created an example code/structure, i would like you to follow
+please use this structure, but keep our code
+
+
+example html code:
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Layout</title>
+		<link rel="stylesheet" href="styles.css" />
+		<!-- Linking the CSS file -->
+	</head>
+	<body>
+		<div class="main-container">
+			<div class="row">
+				<h1>Row 1 Column 1&2 - title goes here</h1>
+				<!-- Heading for first row -->
+			</div>
+			<div class="row">
+				<div class="column">
+					<h2>Row 2 Col 1 - select and delete goes here</h2>
+					<!-- Heading for second row column 1 -->
+					<button>Button 1</button>
+					<!-- Button for the first row -->
+				</div>
+				<div class="column">
+					<h2>Row 2 Col 2 - create room goes here</h2>
+					<!-- Heading for second row column 2 -->
+					<button>Button 2</button>
+					<!-- Button for the second row -->
+				</div>
+			</div>
+		</div>
+	</body>
+</html>
+
+
+
+example css code:
+
+body {
+	margin: 0; /* Remove default margin */
+	font-family: Arial, sans-serif; /* Set font family */
+}
+
+.main-container {
+	display: grid; /* Use CSS Grid for layout */
+	grid-template-rows: 10% 90%; /* Divide main container into two rows: 10% for buffer, 90% for content */
+	background-color: #f0f0f0; /* Set background color to light gray */
+	border: 2px solid #ccc; /* Set border */
+	padding: 10px; /* Add padding */
+	width: 50%; /* Set width to 50% of viewport */
+	height: 80vh; /* Set height to 80% of viewport height */
+	margin: 10vh auto 0; /* Add top margin of 10vh, center horizontally */
+}
+
+.row {
+	display: grid; /* Use CSS Grid for layout */
+	grid-template-columns: 1fr 1fr; /* Divide each row into two columns */
+	height: 100%; /* Ensure each row fills the entire height of the main container */
+}
+
+.column {
+	background-color: #e0e0e0; /* Set background color to lighter gray */
+	border: 2px solid #ccc; /* Set border */
+	padding: 10px; /* Add padding */
+	margin: 5px; /* Add margin */
+	display: flex; /* Use Flexbox for layout inside columns */
+	flex-direction: column; /* Align items vertically */
+}
+
+h1 {
+	margin: auto; /* Center the h1 horizontally */
+	text-align: center; /* Align text to center */
+	height: 10%; /* Set height of h1 to 10% of main container */
+	grid-column: span 2; /* Span the h1 across both columns */
+}
+
+h2 {
+	margin-bottom: 10px; /* Add margin below h2 */
+}
+
+button {
+	margin-top: auto; /* Push button to bottom */
+	margin-bottom: 10px; /* Add a tiny buffer */
+	align-self: center; /* Center horizontally */
+}

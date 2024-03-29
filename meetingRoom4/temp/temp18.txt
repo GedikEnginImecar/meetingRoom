@@ -1,0 +1,523 @@
+cookiesMiddleware.js:
+const jwt = require("jsonwebtoken");
+const { parse } = require("cookie");
+require("dotenv").config();
+
+const verifyAndAttachUser = (req, res, next) => {
+	const cookieHeader = req.headers.cookie;
+	if (!cookieHeader) {
+		return res.status(401).json({ message: "No cookies sent" });
+	}
+
+	const cookies = parse(cookieHeader);
+	const token = cookies.token;
+
+	if (!token) {
+		return res.status(401).json({ message: "Token not found in cookies" });
+	}
+
+	try {
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		req.user = decoded; // Attach the decoded token to the request object
+		next();
+	} catch (error) {
+		return res.status(400).json({ message: "Invalid token" });
+	}
+};
+
+module.exports = { verifyAndAttachUser };
+
+
+auth.js:
+require("dotenv").config();
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const { serialize } = require("cookie");
+
+const saltRounds = 10;
+const JWT_SECRET = process.env.JWT_SECRET; // Use JWT secret key from .env file
+
+exports.auth = {
+	// This function takes a password and returns a promise that resolves with the hashed password.
+	async hashPassword(password) {
+		return await bcrypt.hash(password, saltRounds);
+	},
+
+	// This function takes a password and a hashed password and returns a promise that resolves with a boolean indicating whether the password matches the hashed password.
+	async checkPassword(password, hashedPassword) {
+		return bcrypt.compare(password, hashedPassword);
+	},
+
+	// This function takes a user object and returns a JWT token.
+	async generateToken(user, res) {
+		const { userID } = user;
+		const token = jwt.sign({ userID }, process.env.JWT_SECRET, {
+			expiresIn: "1h",
+		});
+
+		// Set the token as a cookie
+		const tokenCookie = serialize("token", token, {
+			httpOnly: false,
+			maxAge: 3600000, // 1 hour
+			secure: false, // Set to true if you're using HTTPS
+			sameSite: "strict",
+			path: "/", // Ensure the cookie is available for all routes
+		});
+		// Add the cookie to the response headers
+		res.setHeader("Set-Cookie", tokenCookie);
+
+		return token;
+	},
+
+	//This function takes a user object and returns a refresh token.
+	async refreshToken(user) {
+		const { _id, id } = user;
+		return jwt.sign({ _id, id }, JWT_SECRET, { expiresIn: "48h" });
+	},
+
+	// This function takes a token and returns the decoded payload.
+	async verifyToken(token) {
+		try {
+			const decoded = jwt.verify(token, JWT_SECRET);
+			return decoded;
+		} catch (error) {
+			console.error("Token verification failed:", error);
+			return null;
+		}
+	},
+};
+
+
+meetingController.js:
+// meetingController.js
+
+const {
+	Meeting,
+	Room,
+	User,
+	connect,
+	sequelize,
+} = require("../configs/dbConfig");
+const { Op } = require("sequelize");
+
+exports.meetingController = {
+	async createMeeting(req, res) {
+		await connect();
+		try {
+			const { userID, roomID, meetingDate, meetingStart, meetingEnd } =
+				req.body;
+
+			// Check if the user has permission to create a meeting in the specified room
+
+			const room = await Room.findByPk(roomID);
+			const user = await User.findByPk(userID);
+
+			if (!room || user.permission > room.minPermission) {
+				return res.status(403).json({
+					message: "Insufficient clearance to create a meeting in this room",
+				});
+			}
+
+			// this is where you would try to get userID from the encrypted cookie and attempt to decrypt it to create a meeting
+			// currently pass userID into it manually
+
+			// Create the meeting
+			const meeting = await Meeting.create({
+				userID,
+				roomID,
+				meetingDate,
+				meetingStart,
+				meetingEnd,
+			});
+
+			res.status(201).json(meeting);
+		} catch (error) {
+			console.error("Error creating meeting:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	async getAllMeetings(req, res) {
+		await connect();
+		try {
+			const meetings = await Meeting.findAll();
+			res.json(meetings);
+		} catch (error) {
+			console.error("Error retrieving meetings:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	async getMeetingsByRoomDate(req, res) {
+		await connect();
+		try {
+			const { roomID, meetingDate } = req.params;
+
+			// Find the room by ID
+			const room = await Room.findByPk(roomID);
+			if (!room) {
+				return res.status(404).json({ message: "Room not found" });
+			}
+
+			const meetings = await Meeting.findAll({
+				where: { roomID, meetingDate },
+			});
+			res.json(meetings);
+		} catch (error) {
+			console.error("Error retrieving meetings:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	async getAllMeetingsBetween(req, res) {
+		await connect();
+		try {
+			const { queryDateStart, queryDateEnd, roomID } = req.params;
+
+			// Find all meetings between the specified dates
+			const meetings = await Meeting.findAll({
+				where: {
+					meetingDate: {
+						[Op.between]: [queryDateStart, queryDateEnd],
+					},
+					roomID: roomID,
+				},
+			});
+
+			res.status(200).json(meetings);
+		} catch (error) {
+			console.error("Error retrieving meetings between dates:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	async deleteMeetingByID(req, res) {
+		await connect();
+		try {
+			const { meetingID } = req.params;
+
+			// Find the meeting by ID
+			const meeting = await Meeting.findByPk(meetingID);
+			if (!meeting) {
+				return res.status(404).json({ message: "Meeting not found" });
+			}
+
+			// Check if the user has permission to delete the meeting (assuming permission checks)
+			// Additional permission logic can be added here
+
+			// Delete the meeting
+			await meeting.destroy();
+
+			res.json({ message: "Meeting deleted successfully" });
+		} catch (error) {
+			console.error("Error deleting meeting:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+
+	async deleteMeetingByInfo(req, res) {
+		await connect();
+		try {
+			const { roomID, meetingDate, meetingStart } = req.params;
+
+			// Find the meeting by ID
+			const meeting = await Meeting.findOne({
+				where: { roomID, meetingDate, meetingStart },
+			});
+			if (!meeting) {
+				return res.status(404).json({ message: "Meeting not found" });
+			}
+
+			// Check if the user has permission to delete the meeting (assuming permission checks)
+			// Additional permission logic can be added here
+
+			// Delete the meeting
+			await meeting.destroy();
+
+			res.json({ message: "Meeting deleted successfully" });
+		} catch (error) {
+			console.error("Error deleting meeting:", error);
+			res.status(500).json({ message: "Internal server error" });
+		}
+	},
+};
+
+
+cookiesRouter.js:
+const express = require("express");
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
+require("dotenv").config();
+
+const router = express.Router();
+
+// Middleware to parse cookies
+router.use(cookieParser());
+
+// Route to decode the token cookie
+router.get("/decodeToken", (req, res) => {
+	const token = req.cookies.token;
+
+	if (!token) {
+		return res.status(401).json({ message: "Token not found in cookies" });
+	}
+
+	try {
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		res.json({ decoded });
+	} catch (error) {
+		res.status(400).json({ message: "Invalid or expired token" });
+	}
+});
+
+module.exports = router;
+
+
+meeting.js:
+// Function to handle window onload event
+window.onload = async function () {
+	try {
+		const decodedToken = await decodeToken();
+
+		if (decodedToken) {
+			// If token is decoded successfully, use the decoded information
+			console.log("Decoded Token:", decodedToken);
+			loadRooms();
+		} else {
+			// If token decoding fails or not found
+			alert("Failed to decode token or token not found");
+		}
+	} catch (error) {
+		console.error("Error:", error);
+		alert("Error decoding token");
+	}
+};
+
+// Function to decode token by making a request to the server
+async function decodeToken() {
+	const response = await fetch("/cookies/decodeToken", {
+		credentials: "include", // Important for including cookies in the request
+	});
+	if (response.ok) {
+		const data = await response.json();
+		return data.decoded;
+	} else {
+		console.error("Failed to decode token:", response.statusText);
+		return null;
+	}
+}
+
+async function loadRooms() {
+	try {
+		const response = await fetch("/room/rooms"); // Fetch all rooms
+		if (!response.ok) {
+			throw new Error("Failed to fetch rooms");
+		}
+		const rooms = await response.json();
+		const roomSelect = document.getElementById("roomSelect");
+		rooms.forEach((room) => {
+			const option = document.createElement("option");
+			option.value = room.roomID;
+			option.textContent = `${room.roomName} - ${room.department}`;
+			roomSelect.appendChild(option);
+		});
+
+		// Automatically select the nearest past Monday as the starting date
+		const currentDate = new Date();
+		const dayOfWeek = currentDate.getDay();
+		const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+		const startOfWeek = new Date(currentDate);
+		startOfWeek.setDate(currentDate.getDate() - daysToMonday);
+		document.getElementById("startDate").value = startOfWeek
+			.toISOString()
+			.split("T")[0];
+
+		// Load the calendar
+		await loadCalendar();
+	} catch (error) {
+		console.error("Error loading rooms:", error.message);
+	}
+}
+
+async function loadCalendar() {
+	try {
+		const roomID = document.getElementById("roomSelect").value;
+		const startDate = document.getElementById("startDate").value;
+		const endDate = addDays(startDate, 6);
+		const response = await fetch(
+			`/meeting/search/between/${startDate}/${endDate}/${roomID}`
+		);
+		if (!response.ok) {
+			throw new Error("Failed to fetch meetings");
+		}
+		const meetings = await response.json();
+		renderCalendar(meetings, startDate);
+	} catch (error) {
+		console.error("Error loading calendar:", error.message);
+	}
+}
+
+function renderCalendar(meetings, startDate) {
+	const calendar = document.getElementById("calendar");
+	calendar.innerHTML = ""; // Clear previous calendar
+
+	const daysOfWeek = [
+		"Monday",
+		"Tuesday",
+		"Wednesday",
+		"Thursday",
+		"Friday",
+		"Saturday",
+		"Sunday",
+	];
+
+	for (let i = 0; i < 7; i++) {
+		const currentDate = new Date(startDate);
+		currentDate.setDate(currentDate.getDate() + i);
+
+		const dayDiv = document.createElement("div");
+		dayDiv.classList.add("day");
+		dayDiv.textContent = `${
+			daysOfWeek[i]
+		} (${currentDate.toLocaleDateString()})`;
+
+		meetings.forEach((meeting) => {
+			const meetingDate = new Date(meeting.meetingDate);
+			if (meetingDate.toDateString() === currentDate.toDateString()) {
+				const meetingDiv = document.createElement("div");
+				meetingDiv.classList.add("meeting");
+				meetingDiv.textContent = `${meeting.meetingStart} - ${meeting.meetingEnd}`;
+				meetingDiv.setAttribute("data-meeting-id", meeting.meetingID); // Add meeting ID as data attribute
+				meetingDiv.addEventListener("click", () => {
+					handleMeetingSelection(meeting.meetingID); // Call handleMeetingSelection with meeting ID on click
+				});
+
+				dayDiv.appendChild(meetingDiv);
+			}
+		});
+
+		calendar.appendChild(dayDiv);
+	}
+
+	// Display selected meetings in the "View/Delete Meetings" section
+	displaySelectedMeetings(meetings);
+}
+
+function addDays(dateString, days) {
+	const date = new Date(dateString);
+	date.setDate(date.getDate() + days);
+	return date.toISOString().split("T")[0];
+}
+
+function prevWeek() {
+	const startDate = document.getElementById("startDate").value;
+	const newStartDate = addDays(startDate, -7); // Subtract 7 days to go to previous week
+	document.getElementById("startDate").value = newStartDate;
+	loadCalendar();
+}
+
+function nextWeek() {
+	const startDate = document.getElementById("startDate").value;
+	const newStartDate = addDays(startDate, 7); // Add 7 days to go to next week
+	document.getElementById("startDate").value = newStartDate;
+	loadCalendar();
+}
+
+function validateDate() {
+	const selectedDate = new Date(document.getElementById("startDate").value);
+	const dayOfWeek = selectedDate.getDay();
+
+	if (dayOfWeek !== 1) {
+		alert("Please select a Monday.");
+		const currentDate = new Date();
+		const dayDiff = (currentDate.getDay() - 1 + 7) % 7;
+		const lastMonday = new Date(currentDate);
+		lastMonday.setDate(currentDate.getDate() - dayDiff);
+		document.getElementById("startDate").value = lastMonday
+			.toISOString()
+			.split("T")[0];
+	} else {
+		loadCalendar(); // Load calendar when a Monday is selected
+	}
+}
+
+// Function to handle meeting selection
+function handleMeetingSelection(meetingID) {
+	const selectedMeeting = document.querySelector(
+		`[data-meeting-id="${meetingID}"]`
+	);
+	selectedMeeting.classList.toggle("selected");
+	// Add your logic here to handle the selected meeting
+}
+
+// Function to display selected meetings in the "View/Delete Meetings" section
+function displaySelectedMeetings(meetings) {
+	const meetingsList = document.querySelector(".meetings-list");
+	meetingsList.innerHTML = ""; // Clear previous meetings
+
+	meetings.forEach((meeting) => {
+		const meetingItem = document.createElement("div");
+		meetingItem.textContent = `${meeting.meetingStart} - ${meeting.meetingEnd}`;
+		meetingsList.appendChild(meetingItem);
+	});
+}
+
+// Function to delete selected meetings
+async function deleteSelectedMeetings() {
+	const selectedMeetings = document.querySelectorAll(".selected");
+	const meetingIDs = Array.from(selectedMeetings).map((meeting) =>
+		meeting.getAttribute("data-meeting-id")
+	);
+
+	try {
+		for (const meetingID of meetingIDs) {
+			const response = await fetch(`/meeting/delete/meetingID/${meetingID}`, {
+				method: "DELETE",
+			});
+			if (!response.ok) {
+				throw new Error(`Failed to delete meeting with ID ${meetingID}`);
+			}
+		}
+		// Reload the calendar after deleting meetings
+		loadCalendar();
+	} catch (error) {
+		console.error("Error deleting meetings:", error.message);
+	}
+}
+
+// Function to create a meeting
+async function createMeeting() {
+	try {
+		const userID = document.getElementById("userID").value;
+		const roomID = document.getElementById("roomSelect").value;
+		const meetingDate = document.getElementById("meetingDate").value;
+		const meetingStart = document.getElementById("meetingStart").value;
+		const meetingEnd = document.getElementById("meetingEnd").value;
+
+		const response = await fetch("/meeting/create", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				userID,
+				roomID,
+				meetingDate,
+				meetingStart,
+				meetingEnd,
+			}),
+		});
+
+		const data = await response.json();
+
+		if (!response.ok) {
+			throw new Error(data.message || "Failed to create meeting");
+		}
+
+		// Reload the calendar after creating the meeting
+		loadCalendar();
+	} catch (error) {
+		console.error("Error creating meeting:", error.message);
+		alert("Failed to create meeting: " + error.message);
+	}
+}

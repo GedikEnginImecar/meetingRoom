@@ -1,0 +1,78 @@
+┣ 📂.vscode
+┃ ┗ 📜settings.json
+┣ 📂configs
+┃ ┣ 📜dbConfig.js
+┃ ┗ 📜info.md
+┣ 📂controllers
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingController.js
+┃ ┣ 📜roomController.js
+┃ ┗ 📜userController.js
+┣ 📂ledControl
+┃ ┗ // the cpp code goes in here for the esp32 but it added too many extra characters to include
+┣ 📂middlewares
+┃ ┣ 📂auth
+┃ ┃ ┣ 📜auth.js
+┃ ┃ ┗ 📜info.md
+┃ ┣ 📂dtos
+┃ ┃ ┣ 📜appInfoDTO.js
+┃ ┃ ┣ 📜meetingDTO.js
+┃ ┃ ┣ 📜permissionDTO.js
+┃ ┃ ┣ 📜roomDTO.js
+┃ ┃ ┗ 📜userDTO.js
+┃ ┣ 📂responses
+┃ ┃ ┣ 📜authenticationResponse.js
+┃ ┃ ┣ 📜errorResponse.js
+┃ ┃ ┣ 📜permissionResponse.js
+┃ ┃ ┣ 📜resourceResponse.js
+┃ ┃ ┣ 📜successResponse.js
+┃ ┃ ┗ 📜validationResponse.js
+┃ ┗ 📜info.md
+┣ 📂models
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingModel.js
+┃ ┣ 📜roomModel.js
+┃ ┗ 📜userModel.js
+┣ 📂public
+┃ ┣ 📂css
+┃ ┃ ┣ 📜dashboard.css
+┃ ┃ ┣ 📜login.css
+┃ ┃ ┣ 📜meetings.css
+┃ ┃ ┣ 📜register.css
+┃ ┃ ┗ 📜rooms.css
+┃ ┣ 📂html
+┃ ┃ ┣ 📜dashboard.html
+┃ ┃ ┣ 📜login.html
+┃ ┃ ┣ 📜meetings.html
+┃ ┃ ┣ 📜register.html
+┃ ┃ ┗ 📜rooms.html
+┃ ┣ 📂js
+┃ ┃ ┣ 📜dashboard.js
+┃ ┃ ┣ 📜login.js
+┃ ┃ ┣ 📜meetings.js
+┃ ┃ ┣ 📜register.js
+┃ ┃ ┗ 📜rooms.js
+┃ ┣ 📜index.html
+┃ ┗ 📜info.md
+┣ 📂routers
+┃ ┣ 📜authRouter.js
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingRouter.js
+┃ ┣ 📜roomRouter.js
+┃ ┗ 📜userRouter.js
+┣ 📂validators
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingValidator.js
+┃ ┣ 📜roomValidator.js
+┃ ┗ 📜userValidator.js
+┣ 📜.env
+┣ 📜.gitignore
+┣ 📜package.json
+┗ 📜server.js
+
+
+this is my project file structure,
+
+I have an esp32 i want to communicate with using the nodeJS app.
+
+which files do i need to create/modify to be able to do this?

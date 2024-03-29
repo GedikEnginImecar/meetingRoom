@@ -1,0 +1,102 @@
+┣ 📂.vscode
+┃ ┗ 📜settings.json
+┣ 📂auth
+┃ ┗ 📜info.md
+┣ 📂configs
+┃ ┣ 📜dbConfig.js
+┃ ┗ 📜info.md
+┣ 📂controllers
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingController.js
+┃ ┣ 📜roomController.js
+┃ ┗ 📜userController.js
+┣ 📂middlewares
+┃ ┗ 📜info.md
+┣ 📂models
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingModel.js
+┃ ┣ 📜roomModel.js
+┃ ┗ 📜userModel.js
+┣ 📂old
+┃ ┣ 📜meetingController.js
+┃ ┣ 📜roomController.js
+┃ ┗ 📜userController.js
+┣ 📂public
+┃ ┣ 📂css
+┃ ┃ ┣ 📜dashboard.css
+┃ ┃ ┣ 📜login.css
+┃ ┃ ┣ 📜meetings.css
+┃ ┃ ┣ 📜register.css
+┃ ┃ ┗ 📜rooms.css
+┃ ┣ 📂html
+┃ ┃ ┣ 📜dashboard.html
+┃ ┃ ┣ 📜login.html
+┃ ┃ ┣ 📜meetings.html
+┃ ┃ ┣ 📜register.html
+┃ ┃ ┗ 📜rooms.html
+┃ ┣ 📂js
+┃ ┃ ┣ 📜dashboard.js
+┃ ┃ ┣ 📜login.js
+┃ ┃ ┣ 📜meetings.js
+┃ ┃ ┣ 📜register.js
+┃ ┃ ┗ 📜rooms.js
+┃ ┣ 📜index.html
+┃ ┗ 📜info.md
+┣ 📂response
+┃ ┣ 📂dtos
+┃ ┃ ┣ 📜apiErrorLog.dto.js
+┃ ┃ ┣ 📜appInfo.dto.js
+┃ ┃ ┣ 📜company.dto.js
+┃ ┃ ┣ 📜data transfer object info.txt
+┃ ┃ ┣ 📜department.dto.js
+┃ ┃ ┣ 📜module.dto.js
+┃ ┃ ┣ 📜permission.dto.js
+┃ ┃ ┣ 📜role.dto.js
+┃ ┃ ┗ 📜user.dto.js
+┃ ┗ 📂response
+┃   ┣ 📜imecarErrorResponse.js
+┃   ┣ 📜imecarResponse.js
+┃   ┗ 📜info.txt
+┣ 📂routers
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingRouter.js
+┃ ┣ 📜roomRouter.js
+┃ ┗ 📜userRouter.js
+┣ 📂temp
+┃ ┣ 📜temp.txt
+┃ ┣ 📜temp2.txt
+┃ ┣ 📜temp3.txt
+┃ ┣ 📜temp4.txt
+┃ ┣ 📜temp5.txt
+┃ ┣ 📜temp6.txt
+┃ ┣ 📜temp7.txt
+┃ ┣ 📜temp8.txt
+┃ ┗ 📜temp9.txt
+┣ 📂validators
+┃ ┣ 📜info.md
+┃ ┣ 📜meetingValidator.js
+┃ ┣ 📜roomValidator.js
+┃ ┗ 📜userValidator.js
+┣ 📜.env
+┣ 📜.gitignore
+┣ 📜package.json
+┣ 📜server.js
+┗ 📜test.js
+
+
+this is my current file structure, 
+the rough idea of this project is:
+to have users be able to register and login, create rooms within specific departments and use them dependant on their permission/access level. and then create meetings for said rooms and view them, once again based on their access/permission level
+--
+currently the users can open the app, and land at index.js, the entry point, and then navigate to register or login depending on what they need to do
+they can also add, view or delete rooms if they wish to
+that is what i have working front end wise
+--
+the next step of this is to create a calender system, where it can fetch the meeting schedule for the week, based on the room the user selects,
+and the user can create or delete meetings as they want to allowing for their permission level
+--
+i have old code from a previous project i have done with something similar to this but we need to update the old code/rebuild it to match our new controllers, db models etc
+--
+currently the entire backend is working, we just need to implement the public files for this (meetings.html, meetings.css, meetings.js)
+
+do you understand what i have conveyed so far?
