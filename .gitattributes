@@ -1,2 +1,8 @@
 *.sldpart linguist-detectable=false
 *.stl linguist-detectable=false
+*.gcode linguist-detectable=false
+*.mpf linguist-detectable=false
+*.mpt linguist-detectable=false
+
+
+
